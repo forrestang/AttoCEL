@@ -1703,11 +1703,8 @@
                     'success'
                 );
                 
-                // Load chart data if chart is available
-                if (window.loadChartData && typeof window.loadChartData === 'function') {
-                    console.log('Loading chart data from API download...');
-                    window.loadChartData(processedChartData);
-                }
+                // Chart data will only be loaded when user uploads a file
+                // API download only saves the JSON file for later upload
                 
             } catch (error) {
                 throw new Error(`API download failed: ${error.message}`);
