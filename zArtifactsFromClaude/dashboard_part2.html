@@ -1,0 +1,614 @@
+<!-- PART 2: CONTROLS PANEL LOGIC -->
+<!-- This code adds all the form controls and interaction logic -->
+
+<!-- DATA SOURCE SECTION HTML -->
+<div id="data-source-controls">
+    <!-- Data Source Toggle -->
+    <div class="form-group">
+        <div class="toggle-group">
+            <button class="toggle-option active" onclick="toggleDataSource('api')">HyperLiquid API</button>
+            <button class="toggle-option" onclick="toggleDataSource('upload')">Upload File</button>
+        </div>
+    </div>
+    
+    <!-- HyperLiquid API Section -->
+    <div id="api-data-source">
+        <div class="form-group">
+            <label>Asset Symbol</label>
+            <select id="asset-select">
+                <option value="">Loading symbols...</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label>Chart Timeframe (Display)</label>
+            <select id="chart-timeframe-select">
+                <option value="5m">5 Minutes</option>
+                <option value="15m">15 Minutes</option>
+                <option value="30m">30 Minutes</option>
+                <option value="1h">1 Hour</option>
+                <option value="4h">4 Hours</option>
+                <option value="1d">1 Day</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label>Backtest Timeframe (Execution)</label>
+            <select id="backtest-timeframe-select">
+                <option value="1m">1 Minute</option>
+                <option value="3m">3 Minutes</option>
+                <option value="5m">5 Minutes</option>
+                <option value="15m">15 Minutes</option>
+            </select>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label>Start Date</label>
+                <input type="date" id="start-date">
+            </div>
+            <div class="form-group">
+                <label>End Date</label>
+                <input type="date" id="end-date">
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label>Save Location</label>
+            <div style="display: flex; gap: 10px;">
+                <input type="text" id="save-path" placeholder="./data/" value="./data/" style="flex: 1;">
+                <button class="btn btn-secondary" onclick="selectSaveLocation()" style="padding: 8px 12px; width: auto;">📁</button>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label>Estimated Data Size</label>
+            <div style="font-size: 12px; color: #8b949e; padding: 8px; background: #21262d; border-radius: 6px; border: 1px solid #30363d;">
+                <span id="data-size-estimate">Select dates to estimate</span>
+            </div>
+        </div>
+        
+        <!-- Download Progress -->
+        <div id="download-progress" class="progress-container hidden">
+            <div class="progress-header">
+                <span>Downloading...</span>
+                <span id="progress-text">0%</span>
+            </div>
+            <div class="progress-bar">
+                <div id="progress-fill" class="progress-fill"></div>
+            </div>
+        </div>
+        
+        <button class="btn" onclick="downloadData()" style="margin-top: 10px;">📥 Download Data</button>
+    </div>
+    
+    <!-- File Upload Section -->
+    <div id="file-data-source" class="hidden">
+        <div class="file-upload" onclick="selectFile()">
+            <div>📁 Upload OHLC Data</div>
+            <div style="font-size: 12px; color: #8b949e; margin-top: 5px;">
+                CSV, JSON supported<br>
+                Chart and backtest data
+            </div>
+        </div>
+        
+        <div class="form-group" style="margin-top: 10px;">
+            <label>Asset Symbol</label>
+            <input type="text" id="manual-asset" placeholder="BTC, ETH, SOL..." value="BTCUSD">
+        </div>
+    </div>
+    
+    <!-- Universal Settings -->
+    <div class="form-group" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #30363d;">
+        <label>Tick Size</label>
+        <input type="number" placeholder="0.01" value="0.01" step="0.001" id="tick-size">
+    </div>
+    
+    <!-- Data Status -->
+    <div id="data-status" class="status-message status-info hidden">
+        No data loaded
+    </div>
+</div>
+
+<!-- SESSION CONFIGURATION HTML -->
+<div id="session-config-controls">
+    <div class="form-group">
+        <label>Session Length (minutes)</label>
+        <input type="number" id="session-length" value="240" placeholder="240" min="60" step="60">
+    </div>
+    <div class="form-group">
+        <label>Opening Range (minutes)</label>
+        <input type="number" id="opening-range" value="10" placeholder="10" min="1" step="1">
+    </div>
+    <div class="form-group">
+        <label>Session Start Times (UTC)</label>
+        <input type="text" id="session-starts" value="00:00, 04:00, 08:00, 12:00, 16:00, 20:00" placeholder="00:00, 04:00...">
+    </div>
+</div>
+
+<!-- STOP/TARGET METHOD HTML -->
+<div id="stop-target-controls">
+    <div class="form-group">
+        <div class="toggle-group">
+            <button class="toggle-option active" onclick="toggleStopMethod('bar')">Bar-Based</button>
+            <button class="toggle-option" onclick="toggleStopMethod('atr')">ATR-Based</button>
+        </div>
+    </div>
+    
+    <!-- Bar-Based Parameters -->
+    <div id="bar-params">
+        <div class="form-group">
+            <label>Tick Buffer</label>
+            <input type="number" id="tick-buffer" value="1" min="0">
+        </div>
+    </div>
+    
+    <!-- ATR-Based Parameters -->
+    <div id="atr-params" class="conditional-params hidden">
+        <div class="form-group">
+            <label>ATR Period</label>
+            <input type="number" id="atr-period" value="14" min="1">
+        </div>
+        <div class="form-group">
+            <label>ATR Multiplier</label>
+            <input type="number" id="atr-multiplier" value="0.5" step="0.1" min="0.1">
+        </div>
+        <div class="form-group">
+            <label>Minimum Stop (ticks)</label>
+            <input type="number" id="min-stop-ticks" value="1" min="1">
+        </div>
+    </div>
+    
+    <div class="form-group">
+        <label>Target R Multiple</label>
+        <input type="number" id="target-r-multiple" value="1.5" step="0.1" min="0.5">
+    </div>
+</div>
+
+<!-- RISK MANAGEMENT HTML -->
+<div id="risk-management-controls">
+    <div class="form-group">
+        <label>Initial Position Size (1R)</label>
+        <input type="number" id="initial-position-size" value="100" placeholder="100" min="1">
+    </div>
+    <div class="form-group">
+        <label>Martingale Progression</label>
+        <input type="text" id="martingale-progression" value="1, 2, 4, 8" placeholder="1, 2, 4, 8">
+    </div>
+    <div class="form-group">
+        <label>Max Session Risk (R)</label>
+        <input type="number" id="max-session-risk" value="15" placeholder="15" min="1">
+    </div>
+</div>
+
+<!-- ACTION BUTTONS HTML -->
+<div id="action-buttons-controls">
+    <button class="btn" onclick="runBacktest()">🚀 Run Backtest</button>
+    <button class="btn btn-secondary" style="margin-top: 10px;" onclick="optimizeParams()">🔍 Auto-Optimize</button>
+</div>
+
+<!-- POST-ANALYSIS FILTERS HTML -->
+<div id="post-filters-controls">
+    <!-- Time Filters -->
+    <div class="form-group">
+        <label>Exclude Days of Week</label>
+        <div class="day-toggle-grid">
+            <button class="toggle-option" data-day="0" onclick="toggleDay(0)">Sun</button>
+            <button class="toggle-option" data-day="1" onclick="toggleDay(1)">Mon</button>
+            <button class="toggle-option" data-day="2" onclick="toggleDay(2)">Tue</button>
+            <button class="toggle-option" data-day="3" onclick="toggleDay(3)">Wed</button>
+            <button class="toggle-option" data-day="4" onclick="toggleDay(4)">Thu</button>
+            <button class="toggle-option" data-day="5" onclick="toggleDay(5)">Fri</button>
+            <button class="toggle-option" data-day="6" onclick="toggleDay(6)">Sat</button>
+            <button class="toggle-option" onclick="toggleAllDays()">All</button>
+        </div>
+    </div>
+    
+    <!-- Time Windows -->
+    <div class="form-group">
+        <label>Time Filters (UTC)</label>
+        <div class="form-row">
+            <select id="time-filter-mode">
+                <option value="include">Include Only</option>
+                <option value="exclude">Exclude</option>
+            </select>
+            <input type="text" id="time-windows" placeholder="00:00-08:00, 16:00-20:00">
+        </div>
+    </div>
+    
+    <!-- Trade Sequence Filters -->
+    <div class="form-group">
+        <label>Max Trades Per Session</label>
+        <div class="form-row">
+            <input type="number" id="max-trades-filter" placeholder="Unlimited" min="1">
+            <select id="trade-selection-mode">
+                <option value="first">Keep First N</option>
+                <option value="last">Keep Last N</option>
+                <option value="best">Keep Best N</option>
+            </select>
+        </div>
+    </div>
+    
+    <!-- Trade Sequence Filter -->
+    <div class="form-group">
+        <label>Include Trade Numbers</label>
+        <div class="trade-number-grid">
+            <button class="toggle-option active" data-trade="1" onclick="toggleTradeNumber(1)">1st</button>
+            <button class="toggle-option active" data-trade="2" onclick="toggleTradeNumber(2)">2nd</button>
+            <button class="toggle-option active" data-trade="3" onclick="toggleTradeNumber(3)">3rd</button>
+            <button class="toggle-option active" data-trade="4" onclick="toggleTradeNumber(4)">4th</button>
+            <button class="toggle-option active" data-trade="5" onclick="toggleTradeNumber(5)">5+</button>
+        </div>
+    </div>
+    
+    <!-- Volatility Filters -->
+    <div class="form-group">
+        <label>ATR Volatility Filter</label>
+        <div class="form-row">
+            <input type="number" id="min-atr-filter" placeholder="Min ATR" step="0.01">
+            <input type="number" id="max-atr-filter" placeholder="Max ATR" step="0.01">
+        </div>
+    </div>
+    
+    <!-- Date Range Filter -->
+    <div class="form-group">
+        <label>Date Range</label>
+        <div class="form-row">
+            <input type="date" id="filter-start-date">
+            <input type="date" id="filter-end-date">
+        </div>
+    </div>
+    
+    <!-- Specific Trade Exclusions -->
+    <div class="form-group">
+        <label>Exclude Specific Sessions/Trades</label>
+        <textarea id="exclude-trades" placeholder="S001-T2, S005-T1, S012-T3..." style="height: 60px; resize: vertical;"></textarea>
+    </div>
+    
+    <!-- Prohibited Time Windows -->
+    <div class="form-group">
+        <label>Prohibited Events/Times</label>
+        <div class="checkbox-group">
+            <div class="checkbox-item">
+                <input type="checkbox" id="exclude-us-open">
+                <span>Exclude US Market Open (13:30-14:30 UTC)</span>
+            </div>
+            <div class="checkbox-item">
+                <input type="checkbox" id="exclude-fomc">
+                <span>Exclude FOMC Announcements</span>
+            </div>
+            <div class="checkbox-item">
+                <input type="checkbox" id="exclude-news">
+                <span>Exclude Major News Events</span>
+            </div>
+            <div class="checkbox-item">
+                <input type="checkbox" id="exclude-low-volume">
+                <span>Exclude Low Volume Periods</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Apply Filters Button -->
+    <button class="btn" onclick="applyFilters()" style="margin-top: 15px;">🔄 Apply Filters</button>
+    <button class="btn btn-secondary" onclick="resetFilters()" style="margin-top: 10px;">↺ Reset All</button>
+</div>
+
+<script>
+// Part 2: Controls Panel Logic JavaScript
+
+// Data source management
+function toggleDataSource(source) {
+    // Update toggle buttons
+    const buttons = document.querySelectorAll('#data-source-controls .toggle-option');
+    buttons.forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+    
+    // Show/hide sections
+    const apiSection = document.getElementById('api-data-source');
+    const fileSection = document.getElementById('file-data-source');
+    
+    if (source === 'api') {
+        apiSection.classList.remove('hidden');
+        fileSection.classList.add('hidden');
+        // Load available symbols if not already loaded
+        if (document.getElementById('asset-select').children.length === 1) {
+            loadAvailableSymbols();
+        }
+    } else {
+        apiSection.classList.add('hidden');
+        fileSection.classList.remove('hidden');
+    }
+}
+
+// Stop/target method toggle
+function toggleStopMethod(method) {
+    // Update toggle buttons
+    const buttons = document.querySelectorAll('#stop-target-controls .toggle-option');
+    buttons.forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+    
+    // Show/hide parameter sections
+    const barParams = document.getElementById('bar-params');
+    const atrParams = document.getElementById('atr-params');
+    
+    if (method === 'bar') {
+        barParams.classList.remove('hidden');
+        atrParams.classList.add('hidden');
+    } else {
+        barParams.classList.add('hidden');
+        atrParams.classList.remove('hidden');
+    }
+}
+
+// Day filter toggles
+function toggleDay(dayIndex) {
+    const button = event.target;
+    button.classList.toggle('active');
+    
+    // Update dashboard state
+    if (!window.dashboardState.currentFilters.excludedDays) {
+        window.dashboardState.currentFilters.excludedDays = [];
+    }
+    
+    const excludedDays = window.dashboardState.currentFilters.excludedDays;
+    const index = excludedDays.indexOf(dayIndex);
+    
+    if (button.classList.contains('active')) {
+        // Remove from excluded list
+        if (index > -1) {
+            excludedDays.splice(index, 1);
+        }
+    } else {
+        // Add to excluded list
+        if (index === -1) {
+            excludedDays.push(dayIndex);
+        }
+    }
+}
+
+function toggleAllDays() {
+    const dayButtons = document.querySelectorAll('[data-day]');
+    const allActive = Array.from(dayButtons).every(btn => btn.classList.contains('active'));
+    
+    dayButtons.forEach(btn => {
+        if (allActive) {
+            btn.classList.remove('active');
+        } else {
+            btn.classList.add('active');
+        }
+    });
+    
+    // Reset excluded days
+    window.dashboardState.currentFilters.excludedDays = allActive ? [0,1,2,3,4,5,6] : [];
+}
+
+// Trade number filter toggles
+function toggleTradeNumber(tradeNum) {
+    const button = event.target;
+    button.classList.toggle('active');
+    
+    // Update dashboard state
+    if (!window.dashboardState.currentFilters.includedTradeNumbers) {
+        window.dashboardState.currentFilters.includedTradeNumbers = [1,2,3,4,5];
+    }
+    
+    const includedTrades = window.dashboardState.currentFilters.includedTradeNumbers;
+    const index = includedTrades.indexOf(tradeNum);
+    
+    if (button.classList.contains('active')) {
+        // Add to included list
+        if (index === -1) {
+            includedTrades.push(tradeNum);
+        }
+    } else {
+        // Remove from included list
+        if (index > -1) {
+            includedTrades.splice(index, 1);
+        }
+    }
+}
+
+// Data size estimation
+function updateDataSizeEstimate() {
+    const startDate = document.getElementById('start-date').value;
+    const endDate = document.getElementById('end-date').value;
+    const chartTimeframe = document.getElementById('chart-timeframe-select').value;
+    const backtestTimeframe = document.getElementById('backtest-timeframe-select').value;
+    
+    if (!startDate || !endDate) {
+        document.getElementById('data-size-estimate').textContent = 'Select dates to estimate';
+        return;
+    }
+    
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+    
+    // Calculate candles for both timeframes
+    const timeframeToMinutes = {
+        '1m': 1, '3m': 3, '5m': 5, '15m': 15, '30m': 30,
+        '1h': 60, '2h': 120, '4h': 240, '8h': 480, '12h': 720, '1d': 1440
+    };
+    
+    const chartMinutes = timeframeToMinutes[chartTimeframe] || 60;
+    const backtestMinutes = timeframeToMinutes[backtestTimeframe] || 1;
+    
+    const chartCandles = Math.floor((days * 1440) / chartMinutes);
+    const backtestCandles = Math.floor((days * 1440) / backtestMinutes);
+    
+    // Estimate size (approximately 80 bytes per candle in JSON)
+    const totalCandles = chartCandles + backtestCandles;
+    const estimatedMB = (totalCandles * 80) / 1024 / 1024;
+    
+    document.getElementById('data-size-estimate').innerHTML = 
+        `Chart: ~${(chartCandles * 80 / 1024 / 1024).toFixed(1)} MB (${chartCandles.toLocaleString()} × ${chartTimeframe})<br>` +
+        `Backtest: ~${(backtestCandles * 80 / 1024 / 1024).toFixed(1)} MB (${backtestCandles.toLocaleString()} × ${backtestTimeframe})<br>` +
+        `<strong>Total: ~${estimatedMB.toFixed(1)} MB</strong>`;
+}
+
+// File selection handlers
+function selectSaveLocation() {
+    // In a real implementation, this would open a native folder picker
+    alert('In a real app, this would open a folder picker. For now, edit the path manually.');
+}
+
+function selectFile() {
+    // In a real implementation, this would open a native file picker
+    alert('In a real app, this would open a file picker. For now, we\'ll focus on the API integration.');
+}
+
+// Filter application
+function applyFilters() {
+    if (!window.dashboardState.backtestResults) {
+        alert('No backtest results to filter. Run a backtest first.');
+        return;
+    }
+    
+    // Collect all filter settings
+    const filters = {
+        excludedDays: window.dashboardState.currentFilters.excludedDays || [],
+        includedTradeNumbers: window.dashboardState.currentFilters.includedTradeNumbers || [1,2,3,4,5],
+        timeFilterMode: document.getElementById('time-filter-mode').value,
+        timeWindows: document.getElementById('time-windows').value,
+        maxTrades: document.getElementById('max-trades-filter').value,
+        tradeSelectionMode: document.getElementById('trade-selection-mode').value,
+        minATR: document.getElementById('min-atr-filter').value,
+        maxATR: document.getElementById('max-atr-filter').value,
+        startDate: document.getElementById('filter-start-date').value,
+        endDate: document.getElementById('filter-end-date').value,
+        excludeSpecific: document.getElementById('exclude-trades').value,
+        excludeUSOpen: document.getElementById('exclude-us-open').checked,
+        excludeFOMC: document.getElementById('exclude-fomc').checked,
+        excludeNews: document.getElementById('exclude-news').checked,
+        excludeLowVolume: document.getElementById('exclude-low-volume').checked
+    };
+    
+    // Store filters and trigger results update (will be implemented in Part 5)
+    window.dashboardState.currentFilters = filters;
+    
+    // This will be connected to the backtesting engine in Part 5
+    console.log('Filters applied:', filters);
+    updateFilterStatus('Filters applied - results updated');
+}
+
+function resetFilters() {
+    // Reset all form inputs
+    document.getElementById('time-windows').value = '';
+    document.getElementById('max-trades-filter').value = '';
+    document.getElementById('min-atr-filter').value = '';
+    document.getElementById('max-atr-filter').value = '';
+    document.getElementById('filter-start-date').value = '';
+    document.getElementById('filter-end-date').value = '';
+    document.getElementById('exclude-trades').value = '';
+    
+    // Reset checkboxes
+    document.querySelectorAll('#post-filters-controls input[type="checkbox"]').forEach(cb => {
+        cb.checked = false;
+    });
+    
+    // Reset day toggles (all active)
+    document.querySelectorAll('[data-day]').forEach(btn => {
+        btn.classList.add('active');
+    });
+    
+    // Reset trade number toggles (all active)
+    document.querySelectorAll('[data-trade]').forEach(btn => {
+        btn.classList.add('active');
+    });
+    
+    // Reset dashboard state
+    window.dashboardState.currentFilters = {
+        excludedDays: [],
+        includedTradeNumbers: [1,2,3,4,5]
+    };
+    
+    updateFilterStatus('Filters reset - showing all data');
+}
+
+// Configuration getters for other parts
+function getSessionConfig() {
+    return {
+        sessionLength: parseInt(document.getElementById('session-length').value) || 240,
+        openingRange: parseInt(document.getElementById('opening-range').value) || 10,
+        sessionStarts: document.getElementById('session-starts').value.split(',').map(s => s.trim()),
+        stopMethod: document.querySelector('#stop-target-controls .toggle-option.active').textContent.toLowerCase().includes('bar') ? 'bar' : 'atr',
+        tickBuffer: parseInt(document.getElementById('tick-buffer').value) || 1,
+        atrPeriod: parseInt(document.getElementById('atr-period').value) || 14,
+        atrMultiplier: parseFloat(document.getElementById('atr-multiplier').value) || 0.5,
+        minStopTicks: parseInt(document.getElementById('min-stop-ticks').value) || 1,
+        targetRMultiple: parseFloat(document.getElementById('target-r-multiple').value) || 1.5,
+        initialPositionSize: parseInt(document.getElementById('initial-position-size').value) || 100,
+        martingaleProgression: document.getElementById('martingale-progression').value.split(',').map(s => parseFloat(s.trim())),
+        maxSessionRisk: parseInt(document.getElementById('max-session-risk').value) || 15,
+        tickSize: parseFloat(document.getElementById('tick-size').value) || 0.01
+    };
+}
+
+function getDataConfig() {
+    const isAPI = document.querySelector('#data-source-controls .toggle-option.active').textContent.includes('API');
+    
+    if (isAPI) {
+        return {
+            source: 'api',
+            asset: document.getElementById('asset-select').value,
+            chartTimeframe: document.getElementById('chart-timeframe-select').value,
+            backtestTimeframe: document.getElementById('backtest-timeframe-select').value,
+            startDate: document.getElementById('start-date').value,
+            endDate: document.getElementById('end-date').value,
+            savePath: document.getElementById('save-path').value
+        };
+    } else {
+        return {
+            source: 'file',
+            asset: document.getElementById('manual-asset').value
+        };
+    }
+}
+
+// Initialize Part 2
+document.addEventListener('DOMContentLoaded', function() {
+    // Populate control sections
+    document.getElementById('data-source-section').appendChild(document.getElementById('data-source-controls'));
+    document.getElementById('session-config-section').appendChild(document.getElementById('session-config-controls'));
+    document.getElementById('stop-target-section').appendChild(document.getElementById('stop-target-controls'));
+    document.getElementById('risk-management-section').appendChild(document.getElementById('risk-management-controls'));
+    document.getElementById('action-buttons-section').appendChild(document.getElementById('action-buttons-controls'));
+    document.getElementById('post-filters-section').appendChild(document.getElementById('post-filters-controls'));
+    
+    // Set default dates
+    const today = new Date();
+    const oneMonthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+    
+    document.getElementById('start-date').value = oneMonthAgo.toISOString().split('T')[0];
+    document.getElementById('end-date').value = today.toISOString().split('T')[0];
+    
+    // Add event listeners for data size estimation
+    ['asset-select', 'chart-timeframe-select', 'backtest-timeframe-select', 'start-date', 'end-date'].forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.addEventListener('change', updateDataSizeEstimate);
+        }
+    });
+    
+    // Initial data size calculation
+    updateDataSizeEstimate();
+    
+    console.log('Part 2: Controls Panel Logic loaded');
+});
+
+// Placeholder for loadAvailableSymbols - will be implemented in Part 3
+function loadAvailableSymbols() {
+    console.log('loadAvailableSymbols will be implemented in Part 3');
+}
+
+// Placeholder for downloadData - will be implemented in Part 3  
+function downloadData() {
+    console.log('downloadData will be implemented in Part 3');
+}
+</script>
+
+<!-- INTEGRATION INSTRUCTIONS FOR FINAL ASSEMBLY:
+1. Move all HTML content from above into the appropriate sections in Part 1
+2. Add the JavaScript to the script section in Part 1
+3. The sections are clearly marked with IDs that match Part 1 placeholders
+-->

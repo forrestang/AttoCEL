@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Opening Range Breakout Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0d1117;
+            color: #e6edf3;
+            font-size: 14px;
+        }
+        
+        .dashboard {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            grid-template-rows: 60px 1fr;
+            height: 100vh;
+            gap: 1px;
+            background: #21262d;
+        }
+        
+        .header {
+            grid-column: 1 / -1;
+            background: #161b22;
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #30363d;
+        }
+        
+        .logo {
+            font-size: 18px;
+            font-weight: 600;
+            color: #58a6ff;
+        }
+        
+        .header-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .controls-panel {
+            background: #161b22;
+            padding: 20px;
+            overflow-y: auto;
+            border-right: 1px solid #30363d;
+        }
+        
+        .main-content {
+            background: #0d1117;
+            display: grid;
+            grid-template-rows: 400px 1fr;
+            gap: 1px;
+        }
+        
+        .chart-container {
+            background: #161b22;
+            padding: 15px;
+            border-bottom: 1px solid #30363d;
+        }
+        
+        .results-container {
+            background: #161b22;
+            padding: 15px;
+            overflow: hidden;
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 15px;
+        }
+        
+        /* Section Styling */
+        .section {
+            margin-bottom: 25px;
+        }
+        
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #f0f6fc;
+            border-bottom: 1px solid #30363d;
+            padding-bottom: 8px;
+        }
+        
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #c9d1d9;
+        }
+        
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 8px 12px;
+            background: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            color: #e6edf3;
+            font-size: 14px;
+        }
+        
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: #58a6ff;
+            box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.1);
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        /* Toggle Groups */
+        .toggle-group {
+            display: flex;
+            background: #21262d;
+            border-radius: 6px;
+            border: 1px solid #30363d;
+            overflow: hidden;
+        }
+        
+        .toggle-option {
+            flex: 1;
+            padding: 8px 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            background: transparent;
+            color: #c9d1d9;
+            font-size: 14px;
+        }
+        
+        .toggle-option.active {
+            background: #58a6ff;
+            color: #fff;
+        }
+        
+        .toggle-option:hover:not(.active) {
+            background: #30363d;
+        }
+        
+        /* Buttons */
+        .btn {
+            width: 100%;
+            padding: 12px;
+            background: #238636;
+            border: none;
+            border-radius: 6px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 14px;
+        }
+        
+        .btn:hover {
+            background: #2ea043;
+        }
+        
+        .btn-secondary {
+            background: #21262d;
+            border: 1px solid #30363d;
+            color: #e6edf3;
+        }
+        
+        .btn-secondary:hover {
+            background: #30363d;
+        }
+        
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .stat-card {
+            background: #21262d;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid #30363d;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        
+        .stat-value.positive { color: #56d364; }
+        .stat-value.negative { color: #f85149; }
+        .stat-value.neutral { color: #58a6ff; }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #8b949e;
+        }
+        
+        /* Tables */
+        .table-container {
+            background: #21262d;
+            border-radius: 6px;
+            border: 1px solid #30363d;
+            overflow: hidden;
+        }
+        
+        .table-header {
+            background: #30363d;
+            padding: 12px 15px;
+            font-weight: 600;
+            border-bottom: 1px solid #30363d;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .table-content {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th, td {
+            padding: 8px 12px;
+            text-align: left;
+            border-bottom: 1px solid #30363d;
+        }
+        
+        th {
+            background: #21262d;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+        
+        tr:hover {
+            background: rgba(88, 166, 255, 0.05);
+        }
+        
+        .trade-long { color: #56d364; }
+        .trade-short { color: #f85149; }
+        
+        /* Charts */
+        .chart-placeholder {
+            height: 100%;
+            background: #0d1117;
+            border-radius: 6px;
+            border: 1px solid #30363d;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #8b949e;
+            font-size: 16px;
+        }
+        
+        /* Filter Chips */
+        .filter-chips {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .chip {
+            background: #21262d;
+            border: 1px solid #30363d;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .chip.active {
+            background: #58a6ff;
+            color: white;
+        }
+        
+        .chip:hover:not(.active) {
+            background: #30363d;
+        }
+        
+        /* File Upload */
+        .file-upload {
+            border: 2px dashed #30363d;
+            border-radius: 6px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+        
+        .file-upload:hover {
+            border-color: #58a6ff;
+        }
+        
+        /* Conditional Parameters */
+        .conditional-params {
+            background: #0d1117;
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 10px;
+            border: 1px solid #30363d;
+        }
+        
+        /* Progress Bar */
+        .progress-container {
+            margin-top: 10px;
+        }
+        
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 12px;
+        }
+        
+        .progress-bar {
+            background: #21262d;
+            border-radius: 3px;
+            height: 6px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            background: #58a6ff;
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s;
+        }
+        
+        /* Status Messages */
+        .status-message {
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+        
+        .status-success {
+            background: #1a472a;
+            border: 1px solid #2ea043;
+            color: #56d364;
+        }
+        
+        .status-error {
+            background: #4c1e1e;
+            border: 1px solid #f85149;
+            color: #f85149;
+        }
+        
+        .status-info {
+            background: #1c2e4a;
+            border: 1px solid #58a6ff;
+            color: #58a6ff;
+        }
+        
+        /* Filter Status */
+        .filter-status {
+            font-size: 12px;
+            color: #8b949e;
+            text-align: right;
+        }
+        
+        /* Day Toggle Grid */
+        .day-toggle-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 5px;
+            margin-top: 5px;
+        }
+        
+        .day-toggle-grid .toggle-option {
+            padding: 6px 4px;
+            font-size: 12px;
+        }
+        
+        /* Trade Number Grid */
+        .trade-number-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 5px;
+            margin-top: 5px;
+        }
+        
+        .trade-number-grid .toggle-option {
+            padding: 6px 4px;
+            font-size: 12px;
+        }
+        
+        /* Checkbox Groups */
+        .checkbox-group {
+            margin-top: 8px;
+        }
+        
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .checkbox-item input[type="checkbox"] {
+            margin-right: 8px;
+            width: auto;
+        }
+        
+        /* Hidden Elements */
+        .hidden {
+            display: none !important;
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .dashboard {
+                grid-template-columns: 300px 1fr;
+            }
+        }
+        
+        @media (max-width: 900px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+                grid-template-rows: 60px auto 1fr;
+            }
+            
+            .controls-panel {
+                border-right: none;
+                border-bottom: 1px solid #30363d;
+                max-height: 300px;
+            }
+            
+            .results-container {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">📊 ORB Trading Dashboard</div>
+            <div class="header-buttons">
+                <button class="btn btn-secondary">Export Results</button>
+                <button class="btn btn-secondary">Save Config</button>
+            </div>
+        </div>
+        
+        <!-- Controls Panel -->
+        <div class="controls-panel">
+            <!-- Data Source Section - PART 2 WILL POPULATE -->
+            <div class="section" id="data-source-section">
+                <div class="section-title">📡 Data Source</div>
+                <!-- Controls will be added in Part 2 -->
+            </div>
+            
+            <!-- Session Configuration -->
+            <div class="section" id="session-config-section">
+                <div class="section-title">⏰ Session Config</div>
+                <!-- Controls will be added in Part 2 -->
+            </div>
+            
+            <!-- Stop/Target Method -->
+            <div class="section" id="stop-target-section">
+                <div class="section-title">🎯 Stop/Target Method</div>
+                <!-- Controls will be added in Part 2 -->
+            </div>
+            
+            <!-- Risk Management -->
+            <div class="section" id="risk-management-section">
+                <div class="section-title">⚠️ Risk Management</div>
+                <!-- Controls will be added in Part 2 -->
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="section" id="action-buttons-section">
+                <!-- Buttons will be added in Part 2 -->
+            </div>
+            
+            <!-- Post-Backtest Filters -->
+            <div class="section hidden" id="post-filters-section">
+                <div class="section-title">🔍 Post-Analysis Filters</div>
+                <!-- Filters will be added in Part 2 -->
+            </div>
+        </div>
+        
+        <!-- Main Content Area -->
+        <div class="main-content">
+            <!-- Chart Section -->
+            <div class="chart-container">
+                <div class="section-title" style="margin-bottom: 15px;">📈 Price Chart & Trades</div>
+                <div class="chart-placeholder" id="chart-placeholder">
+                    Chart will be loaded here (Part 4)
+                    <br><small>TradingView Lightweight Charts 5.0.8</small>
+                </div>
+            </div>
+            
+            <!-- Results Section -->
+            <div class="results-container">
+                <!-- Performance Stats & Trade Log -->
+                <div>
+                    <!-- Quick Stats -->
+                    <div class="section-title">📊 Performance Summary</div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <span></span>
+                        <div class="filter-status">
+                            <span id="filter-status">No data loaded</span>
+                        </div>
+                    </div>
+                    <div class="stats-grid" id="stats-grid">
+                        <!-- Stats will be populated by Part 5 -->
+                        <div class="stat-card">
+                            <div class="stat-value neutral">--</div>
+                            <div class="stat-label">Session Win Rate</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value neutral">--</div>
+                            <div class="stat-label">Total Return</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value neutral">--</div>
+                            <div class="stat-label">Avg Trades/Session</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value neutral">--</div>
+                            <div class="stat-label">Max Drawdown</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value neutral">--</div>
+                            <div class="stat-label">Profit Factor</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value neutral">--</div>
+                            <div class="stat-label">Total Sessions</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Trade Log -->
+                    <div class="table-container" id="trade-log-container">
+                        <div class="table-header">
+                            <span>📋 Trade Log</span>
+                            <div class="filter-chips" id="trade-filter-chips">
+                                <!-- Filter chips will be added by Part 5 -->
+                            </div>
+                        </div>
+                        <div class="table-content">
+                            <table id="trade-log-table">
+                                <thead>
+                                    <tr>
+                                        <th>Session</th>
+                                        <th>Trade#</th>
+                                        <th>Side</th>
+                                        <th>Entry</th>
+                                        <th>Exit</th>
+                                        <th>R Multiple</th>
+                                        <th>Duration</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="trade-log-tbody">
+                                    <tr>
+                                        <td colspan="7" style="text-align: center; color: #8b949e; padding: 40px;">
+                                            No trades to display. Run a backtest to see results.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Session Analysis -->
+                <div>
+                    <div class="section-title">🎯 Session Analysis</div>
+                    
+                    <!-- Session Summary -->
+                    <div class="table-container" id="session-summary-container">
+                        <div class="table-header">
+                            <span>Session Summary</span>
+                        </div>
+                        <div class="table-content">
+                            <table id="session-summary-table">
+                                <thead>
+                                    <tr>
+                                        <th>Session</th>
+                                        <th>Trades</th>
+                                        <th>Result</th>
+                                        <th>Duration</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="session-summary-tbody">
+                                    <tr>
+                                        <td colspan="4" style="text-align: center; color: #8b949e; padding: 40px;">
+                                            No sessions to display.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Optimization Results -->
+                    <div style="margin-top: 20px;">
+                        <div class="section-title">🔧 Parameter Optimization</div>
+                        <div class="table-container" id="optimization-results-container">
+                            <div class="table-header">
+                                <span>Top Configurations</span>
+                            </div>
+                            <div class="table-content">
+                                <table id="optimization-results-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Session</th>
+                                            <th>OR Range</th>
+                                            <th>Method</th>
+                                            <th>Win Rate</th>
+                                            <th>Total R</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="optimization-results-tbody">
+                                        <tr>
+                                            <td colspan="5" style="text-align: center; color: #8b949e; padding: 40px;">
+                                                Run optimization to see results.
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PLACEHOLDER FOR PARTS 2-5 JAVASCRIPT -->
+    <script>
+        // Global variables for dashboard state
+        window.dashboardState = {
+            currentData: null,
+            chartData: null,
+            backtestData: null,
+            backtestResults: null,
+            currentFilters: {},
+            chart: null
+        };
+
+        // Utility functions
+        function showElement(elementId) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.classList.remove('hidden');
+            }
+        }
+
+        function hideElement(elementId) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.classList.add('hidden');
+            }
+        }
+
+        function updateFilterStatus(text) {
+            const statusElement = document.getElementById('filter-status');
+            if (statusElement) {
+                statusElement.textContent = text;
+            }
+        }
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Dashboard structure loaded - ready for Parts 2-5');
+            updateFilterStatus('Dashboard loaded - waiting for data');
+        });
+
+        // Placeholder functions that will be implemented in subsequent parts
+        function toggleDataSource(source) {
+            console.log('toggleDataSource will be implemented in Part 2');
+        }
+
+        function runBacktest() {
+            console.log('runBacktest will be implemented in Part 5');
+        }
+
+        function optimizeParams() {
+            console.log('optimizeParams will be implemented in Part 5');
+        }
+    </script>
+</body>
+</html>

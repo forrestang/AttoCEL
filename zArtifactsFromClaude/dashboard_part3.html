@@ -1,0 +1,513 @@
+<!-- PART 3: HYPERLIQUID API INTEGRATION -->
+<!-- This code handles all API calls and data processing -->
+
+<script>
+// Part 3: HyperLiquid API Integration JavaScript
+
+// API Configuration
+const HYPERLIQUID_API_URL = 'https://api.hyperliquid.xyz/info';
+
+// Available symbols cache
+let availableSymbols = [];
+
+// Data storage
+let downloadedData = {
+    chartData: null,
+    backtestData: null,
+    metadata: null
+};
+
+// Load available symbols from HyperLiquid API
+async function loadAvailableSymbols() {
+    try {
+        updateDataStatus('Loading available symbols...', 'info');
+        
+        const response = await fetch(HYPERLIQUID_API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                type: 'metaAndAssetCtxs'
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`API request failed: ${response.status}`);
+        }
+
+        const data = await response.json();
+        
+        // Extract symbols from the response
+        // The exact structure may vary, but typically it's an array of assets
+        availableSymbols = [];
+        
+        if (data && data.length > 0) {
+            // Handle the metaAndAssetCtxs response format
+            data.forEach(item => {
+                if (item.name) {
+                    availableSymbols.push(item.name);
+                }
+            });
+        } else if (data.universe) {
+            // Alternative response format
+            data.universe.forEach(asset => {
+                if (asset.name) {
+                    availableSymbols.push(asset.name);
+                }
+            });
+        }
+        
+        // Fallback to common symbols if API structure is different
+        if (availableSymbols.length === 0) {
+            availableSymbols = ['BTC', 'ETH', 'SOL', 'AVAX', 'MATIC', 'ARB', 'OP', 'DOGE', 'LTC', 'XRP'];
+            console.warn('Using fallback symbol list. API response structure may have changed.');
+        }
+
+        // Populate the asset dropdown
+        populateAssetDropdown();
+        updateDataStatus('Symbols loaded successfully', 'success');
+        
+    } catch (error) {
+        console.error('Failed to load symbols:', error);
+        
+        // Use fallback symbols
+        availableSymbols = ['BTC', 'ETH', 'SOL', 'AVAX', 'MATIC', 'ARB', 'OP', 'DOGE', 'LTC', 'XRP'];
+        populateAssetDropdown();
+        updateDataStatus('Using fallback symbols (API error)', 'error');
+    }
+}
+
+// Populate asset dropdown with available symbols
+function populateAssetDropdown() {
+    const select = document.getElementById('asset-select');
+    if (!select) return;
+    
+    // Clear existing options
+    select.innerHTML = '';
+    
+    // Add symbols
+    availableSymbols.forEach(symbol => {
+        const option = document.createElement('option');
+        option.value = symbol;
+        option.textContent = symbol;
+        select.appendChild(option);
+    });
+    
+    // Set default to BTC if available
+    if (availableSymbols.includes('BTC')) {
+        select.value = 'BTC';
+    }
+}
+
+// Download OHLC data from HyperLiquid API
+async function downloadData() {
+    const config = getDataConfig();
+    
+    // Validate inputs
+    if (config.source === 'api') {
+        if (!config.asset || !config.startDate || !config.endDate) {
+            alert('Please select asset and date range');
+            return;
+        }
+        
+        const startDate = new Date(config.startDate);
+        const endDate = new Date(config.endDate);
+        
+        if (endDate <= startDate) {
+            alert('End date must be after start date');
+            return;
+        }
+        
+        // Check if date range is too large (HyperLiquid limit is ~5K bars)
+        const daysDiff = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+        const timeframeToMinutes = {
+            '1m': 1, '3m': 3, '5m': 5, '15m': 15, '30m': 30,
+            '1h': 60, '2h': 120, '4h': 240, '8h': 480, '12h': 720, '1d': 1440
+        };
+        
+        const backtestMinutes = timeframeToMinutes[config.backtestTimeframe] || 1;
+        const estimatedBars = Math.floor((daysDiff * 1440) / backtestMinutes);
+        
+        if (estimatedBars > 5000) {
+            alert(`Estimated ${estimatedBars} bars exceeds HyperLiquid's 5K limit. Please reduce date range or use larger timeframe.`);
+            return;
+        }
+    }
+    
+    try {
+        showElement('download-progress');
+        updateProgress(0, 'Starting download...');
+        
+        if (config.source === 'api') {
+            await downloadFromAPI(config);
+        } else {
+            // File upload will be handled here
+            alert('File upload not implemented yet. Use API mode.');
+            return;
+        }
+        
+        updateProgress(100, 'Download complete!');
+        
+        // Hide progress after a delay
+        setTimeout(() => {
+            hideElement('download-progress');
+        }, 2000);
+        
+    } catch (error) {
+        console.error('Download failed:', error);
+        updateDataStatus(`Download failed: ${error.message}`, 'error');
+        hideElement('download-progress');
+    }
+}
+
+// Download data from HyperLiquid API
+async function downloadFromAPI(config) {
+    const startTime = new Date(config.startDate).getTime();
+    const endTime = new Date(config.endDate).getTime();
+    
+    try {
+        // Download chart data (for display and ATR calculation)
+        updateProgress(10, 'Downloading chart data...');
+        const chartData = await fetchCandleData(config.asset, config.chartTimeframe, startTime, endTime);
+        
+        updateProgress(30, 'Processing chart data...');
+        const processedChartData = processCandleData(chartData, config.chartTimeframe);
+        
+        // Download backtest data (for execution granularity)
+        updateProgress(50, 'Downloading backtest data...');
+        const backtestData = await fetchCandleData(config.asset, config.backtestTimeframe, startTime, endTime);
+        
+        updateProgress(70, 'Processing backtest data...');
+        const processedBacktestData = processCandleData(backtestData, config.backtestTimeframe);
+        
+        // Store data
+        updateProgress(80, 'Storing data...');
+        downloadedData = {
+            chartData: processedChartData,
+            backtestData: processedBacktestData,
+            metadata: {
+                asset: config.asset,
+                chartTimeframe: config.chartTimeframe,
+                backtestTimeframe: config.backtestTimeframe,
+                startDate: config.startDate,
+                endDate: config.endDate,
+                downloadTime: new Date().toISOString(),
+                chartCandles: processedChartData.length,
+                backtestCandles: processedBacktestData.length
+            }
+        };
+        
+        // Update global state
+        window.dashboardState.chartData = processedChartData;
+        window.dashboardState.backtestData = processedBacktestData;
+        window.dashboardState.currentData = downloadedData;
+        
+        updateProgress(90, 'Saving to file...');
+        
+        // Save data to file
+        await saveDataToFile(downloadedData, config);
+        
+        updateProgress(100, 'Data ready for backtesting!');
+        
+        // Update status
+        const metadata = downloadedData.metadata;
+        updateDataStatus(
+            `✅ Data loaded: ${metadata.asset} (${metadata.startDate} to ${metadata.endDate})<br>` +
+            `📊 Chart: ${metadata.chartCandles} × ${metadata.chartTimeframe} | Backtest: ${metadata.backtestCandles} × ${metadata.backtestTimeframe}`,
+            'success'
+        );
+        
+    } catch (error) {
+        throw new Error(`API download failed: ${error.message}`);
+    }
+}
+
+// Fetch candle data from HyperLiquid API
+async function fetchCandleData(coin, interval, startTime, endTime) {
+    const response = await fetch(HYPERLIQUID_API_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            type: 'candleSnapshot',
+            req: {
+                coin: coin,
+                interval: interval,
+                startTime: startTime,
+                endTime: endTime
+            }
+        })
+    });
+
+    if (!response.ok) {
+        throw new Error(`HyperLiquid API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    if (!Array.isArray(data)) {
+        throw new Error('Invalid API response format');
+    }
+    
+    return data;
+}
+
+// Process raw candle data into standardized format
+function processCandleData(rawData, timeframe) {
+    return rawData.map(candle => ({
+        timestamp: candle.t,
+        time: candle.t / 1000, // Convert to seconds for TradingView
+        open: parseFloat(candle.o),
+        high: parseFloat(candle.h),
+        low: parseFloat(candle.l),
+        close: parseFloat(candle.c),
+        volume: parseFloat(candle.v),
+        trades: candle.n || 0,
+        timeframe: timeframe,
+        // Add calculated fields
+        hl2: (parseFloat(candle.h) + parseFloat(candle.l)) / 2,
+        hlc3: (parseFloat(candle.h) + parseFloat(candle.l) + parseFloat(candle.c)) / 3,
+        ohlc4: (parseFloat(candle.o) + parseFloat(candle.h) + parseFloat(candle.l) + parseFloat(candle.c)) / 4
+    }));
+}
+
+// Calculate ATR (Average True Range) for the chart data
+function calculateATR(data, period = 14) {
+    if (!data || data.length < period + 1) {
+        return data.map(() => 0);
+    }
+    
+    const trueRanges = [];
+    const atrValues = [];
+    
+    // Calculate True Range for each bar
+    for (let i = 0; i < data.length; i++) {
+        if (i === 0) {
+            // First bar: just high - low
+            trueRanges.push(data[i].high - data[i].low);
+        } else {
+            const tr1 = data[i].high - data[i].low;
+            const tr2 = Math.abs(data[i].high - data[i-1].close);
+            const tr3 = Math.abs(data[i].low - data[i-1].close);
+            trueRanges.push(Math.max(tr1, tr2, tr3));
+        }
+    }
+    
+    // Calculate ATR using Simple Moving Average of True Range
+    for (let i = 0; i < data.length; i++) {
+        if (i < period - 1) {
+            atrValues.push(0);
+        } else {
+            const sum = trueRanges.slice(i - period + 1, i + 1).reduce((a, b) => a + b, 0);
+            atrValues.push(sum / period);
+        }
+    }
+    
+    return atrValues;
+}
+
+// Save data to local file
+async function saveDataToFile(data, config) {
+    try {
+        const filename = `${config.asset}_${config.chartTimeframe}_${config.backtestTimeframe}_${config.startDate}_${config.endDate}.json`;
+        
+        // Create downloadable file
+        const dataToSave = {
+            metadata: data.metadata,
+            chartData: data.chartData,
+            backtestData: data.backtestData,
+            downloadConfig: config,
+            version: '1.0'
+        };
+        
+        const blob = new Blob([JSON.stringify(dataToSave, null, 2)], {
+            type: 'application/json'
+        });
+        
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        console.log(`Data saved as: ${filename}`);
+        
+    } catch (error) {
+        console.error('Failed to save file:', error);
+        // Don't throw error here as download was successful
+    }
+}
+
+// Load data from uploaded file
+async function loadDataFromFile(file) {
+    try {
+        updateDataStatus('Loading file...', 'info');
+        
+        const text = await file.text();
+        const data = JSON.parse(text);
+        
+        // Validate file format
+        if (!data.chartData || !data.backtestData || !data.metadata) {
+            throw new Error('Invalid file format - missing required data sections');
+        }
+        
+        // Store data
+        downloadedData = {
+            chartData: data.chartData,
+            backtestData: data.backtestData,
+            metadata: data.metadata
+        };
+        
+        // Update global state
+        window.dashboardState.chartData = data.chartData;
+        window.dashboardState.backtestData = data.backtestData;
+        window.dashboardState.currentData = downloadedData;
+        
+        // Update status
+        const metadata = data.metadata;
+        updateDataStatus(
+            `✅ File loaded: ${metadata.asset} (${metadata.startDate} to ${metadata.endDate})<br>` +
+            `📊 Chart: ${metadata.chartCandles} × ${metadata.chartTimeframe} | Backtest: ${metadata.backtestCandles} × ${metadata.backtestTimeframe}`,
+            'success'
+        );
+        
+        return true;
+        
+    } catch (error) {
+        updateDataStatus(`File load failed: ${error.message}`, 'error');
+        return false;
+    }
+}
+
+// Progress bar update
+function updateProgress(percentage, message) {
+    const progressFill = document.getElementById('progress-fill');
+    const progressText = document.getElementById('progress-text');
+    
+    if (progressFill) {
+        progressFill.style.width = percentage + '%';
+    }
+    
+    if (progressText) {
+        progressText.textContent = `${Math.round(percentage)}%`;
+    }
+    
+    // Update the message in the progress header
+    const progressHeader = document.querySelector('.progress-header span');
+    if (progressHeader && message) {
+        progressHeader.textContent = message;
+    }
+}
+
+// Update data status message
+function updateDataStatus(message, type = 'info') {
+    const statusElement = document.getElementById('data-status');
+    if (!statusElement) return;
+    
+    statusElement.innerHTML = message;
+    statusElement.className = `status-message status-${type}`;
+    statusElement.classList.remove('hidden');
+}
+
+// Get available data summary for other parts
+function getDataSummary() {
+    if (!downloadedData.metadata) {
+        return null;
+    }
+    
+    return {
+        hasData: true,
+        asset: downloadedData.metadata.asset,
+        chartTimeframe: downloadedData.metadata.chartTimeframe,
+        backtestTimeframe: downloadedData.metadata.backtestTimeframe,
+        startDate: downloadedData.metadata.startDate,
+        endDate: downloadedData.metadata.endDate,
+        chartCandles: downloadedData.chartData?.length || 0,
+        backtestCandles: downloadedData.backtestData?.length || 0
+    };
+}
+
+// Data validation
+function validateData() {
+    if (!downloadedData.chartData || !downloadedData.backtestData) {
+        return { valid: false, error: 'No data loaded' };
+    }
+    
+    if (downloadedData.chartData.length === 0) {
+        return { valid: false, error: 'Chart data is empty' };
+    }
+    
+    if (downloadedData.backtestData.length === 0) {
+        return { valid: false, error: 'Backtest data is empty' };
+    }
+    
+    // Check data integrity
+    const chartStart = downloadedData.chartData[0]?.timestamp;
+    const chartEnd = downloadedData.chartData[downloadedData.chartData.length - 1]?.timestamp;
+    const backtestStart = downloadedData.backtestData[0]?.timestamp;
+    const backtestEnd = downloadedData.backtestData[downloadedData.backtestData.length - 1]?.timestamp;
+    
+    if (!chartStart || !backtestStart) {
+        return { valid: false, error: 'Data timestamps are invalid' };
+    }
+    
+    // Check that backtest data covers the same period as chart data
+    if (backtestStart > chartStart || backtestEnd < chartEnd) {
+        console.warn('Backtest data does not fully cover chart data period');
+    }
+    
+    return { valid: true };
+}
+
+// Export functions for use by other parts
+window.dashboardAPI = {
+    loadAvailableSymbols,
+    downloadData,
+    loadDataFromFile,
+    getDataSummary,
+    validateData,
+    calculateATR,
+    getChartData: () => downloadedData.chartData,
+    getBacktestData: () => downloadedData.backtestData,
+    getMetadata: () => downloadedData.metadata
+};
+
+// Initialize Part 3 when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Part 3: HyperLiquid API Integration loaded');
+    
+    // Load symbols if API mode is active
+    const apiModeActive = document.querySelector('#data-source-controls .toggle-option.active')?.textContent.includes('API');
+    if (apiModeActive) {
+        // Small delay to ensure UI is ready
+        setTimeout(loadAvailableSymbols, 500);
+    }
+});
+
+// File input handling for manual file upload
+document.addEventListener('change', function(event) {
+    if (event.target.type === 'file' && event.target.files.length > 0) {
+        const file = event.target.files[0];
+        if (file.type === 'application/json' || file.name.endsWith('.json')) {
+            loadDataFromFile(file);
+        } else {
+            alert('Please select a JSON file');
+        }
+    }
+});
+
+console.log('Part 3: HyperLiquid API Integration script loaded');
+</script>
+
+<!-- INTEGRATION INSTRUCTIONS FOR FINAL ASSEMBLY:
+1. Add this JavaScript to the main script section in Part 1
+2. The loadAvailableSymbols and downloadData functions are now fully implemented
+3. Data is automatically stored in window.dashboardState for use by Parts 4 and 5
+4. File download/upload functionality is complete
+5. ATR calculation is available for backtesting engine
+-->

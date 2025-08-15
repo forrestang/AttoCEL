@@ -1,0 +1,3461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Opening Range Breakout Dashboard</title>
+    
+    <!-- Lightweight Charts 5.0.8 CDN -->
+    <script src="https://unpkg.com/lightweight-charts@5.0.8/dist/lightweight-charts.standalone.production.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0d1117;
+            color: #e6edf3;
+            font-size: 14px;
+        }
+        
+        .dashboard {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            grid-template-rows: 60px 1fr;
+            height: 100vh;
+            gap: 1px;
+            background: #21262d;
+        }
+        
+        .header {
+            grid-column: 1 / -1;
+            background: #161b22;
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #30363d;
+        }
+        
+        .logo {
+            font-size: 18px;
+            font-weight: 600;
+            color: #58a6ff;
+        }
+        
+        .header-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .controls-panel {
+            background: #161b22;
+            padding: 20px;
+            overflow-y: auto;
+            border-right: 1px solid #30363d;
+        }
+        
+        .main-content {
+            background: #0d1117;
+            display: grid;
+            grid-template-rows: 400px 1fr;
+            gap: 1px;
+        }
+        
+        .chart-container {
+            background: #161b22;
+            padding: 15px;
+            border-bottom: 1px solid #30363d;
+        }
+        
+        .results-container {
+            background: #161b22;
+            padding: 15px;
+            overflow: hidden;
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 15px;
+        }
+        
+        /* Section Styling */
+        .section {
+            margin-bottom: 25px;
+        }
+        
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #f0f6fc;
+            border-bottom: 1px solid #30363d;
+            padding-bottom: 8px;
+        }
+        
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #c9d1d9;
+        }
+        
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 8px 12px;
+            background: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            color: #e6edf3;
+            font-size: 14px;
+        }
+        
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: #58a6ff;
+            box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.1);
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        /* Toggle Groups */
+        .toggle-group {
+            display: flex;
+            background: #21262d;
+            border-radius: 6px;
+            border: 1px solid #30363d;
+            overflow: hidden;
+        }
+        
+        .toggle-option {
+            flex: 1;
+            padding: 8px 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            background: transparent;
+            color: #c9d1d9;
+            font-size: 14px;
+        }
+        
+        .toggle-option.active {
+            background: #58a6ff;
+            color: #fff;
+        }
+        
+        .toggle-option:hover:not(.active) {
+            background: #30363d;
+        }
+        
+        /* Buttons */
+        .btn {
+            width: 100%;
+            padding: 12px;
+            background: #238636;
+            border: none;
+            border-radius: 6px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 14px;
+        }
+        
+        .btn:hover {
+            background: #2ea043;
+        }
+        
+        .btn-secondary {
+            background: #21262d;
+            border: 1px solid #30363d;
+            color: #e6edf3;
+        }
+        
+        .btn-secondary:hover {
+            background: #30363d;
+        }
+        
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .stat-card {
+            background: #21262d;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid #30363d;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        
+        .stat-value.positive { color: #56d364; }
+        .stat-value.negative { color: #f85149; }
+        .stat-value.neutral { color: #58a6ff; }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #8b949e;
+        }
+        
+        /* Tables */
+        .table-container {
+            background: #21262d;
+            border-radius: 6px;
+            border: 1px solid #30363d;
+            overflow: hidden;
+        }
+        
+        .table-header {
+            background: #30363d;
+            padding: 12px 15px;
+            font-weight: 600;
+            border-bottom: 1px solid #30363d;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .table-content {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th, td {
+            padding: 8px 12px;
+            text-align: left;
+            border-bottom: 1px solid #30363d;
+        }
+        
+        th {
+            background: #21262d;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+        
+        tr:hover {
+            background: rgba(88, 166, 255, 0.05);
+        }
+        
+        .trade-long { color: #56d364; }
+        .trade-short { color: #f85149; }
+        
+        /* Charts */
+        #chart-placeholder {
+            height: 100%;
+            background: #0d1117;
+            border-radius: 6px;
+            border: 1px solid #30363d;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        #chart-placeholder .chart-placeholder {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #8b949e;
+            font-size: 16px;
+            z-index: 1;
+            pointer-events: none;
+        }
+        
+        /* Filter Chips */
+        .filter-chips {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .chip {
+            background: #21262d;
+            border: 1px solid #30363d;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .chip.active {
+            background: #58a6ff;
+            color: white;
+        }
+        
+        .chip:hover:not(.active) {
+            background: #30363d;
+        }
+        
+        /* File Upload */
+        .file-upload {
+            border: 2px dashed #30363d;
+            border-radius: 6px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+        
+        .file-upload:hover {
+            border-color: #58a6ff;
+        }
+        
+        /* Conditional Parameters */
+        .conditional-params {
+            background: #0d1117;
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 10px;
+            border: 1px solid #30363d;
+        }
+        
+        /* Progress Bar */
+        .progress-container {
+            margin-top: 10px;
+        }
+        
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 12px;
+        }
+        
+        .progress-bar {
+            background: #21262d;
+            border-radius: 3px;
+            height: 6px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            background: #58a6ff;
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s;
+        }
+        
+        /* Status Messages */
+        .status-message {
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+        
+        .status-success {
+            background: #1a472a;
+            border: 1px solid #2ea043;
+            color: #56d364;
+        }
+        
+        .status-error {
+            background: #4c1e1e;
+            border: 1px solid #f85149;
+            color: #f85149;
+        }
+        
+        .status-info {
+            background: #1c2e4a;
+            border: 1px solid #58a6ff;
+            color: #58a6ff;
+        }
+        
+        /* Filter Status */
+        .filter-status {
+            font-size: 12px;
+            color: #8b949e;
+            text-align: right;
+        }
+        
+        /* Day Toggle Grid */
+        .day-toggle-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 5px;
+            margin-top: 5px;
+        }
+        
+        .day-toggle-grid .toggle-option {
+            padding: 6px 4px;
+            font-size: 12px;
+        }
+        
+        /* Trade Number Grid */
+        .trade-number-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 5px;
+            margin-top: 5px;
+        }
+        
+        .trade-number-grid .toggle-option {
+            padding: 6px 4px;
+            font-size: 12px;
+        }
+        
+        /* Checkbox Groups */
+        .checkbox-group {
+            margin-top: 8px;
+        }
+        
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .checkbox-item input[type="checkbox"] {
+            margin-right: 8px;
+            width: auto;
+        }
+        
+        /* Hidden Elements */
+        .hidden {
+            display: none !important;
+        }
+        
+        /* Progress Modal */
+        .progress-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(13, 17, 23, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(4px);
+        }
+        
+        .progress-modal-content {
+            background: #161b22;
+            border-radius: 8px;
+            padding: 30px;
+            border: 1px solid #30363d;
+            min-width: 300px;
+            text-align: center;
+        }
+        
+        .progress-modal .progress-bar {
+            margin: 20px 0;
+            height: 8px;
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .dashboard {
+                grid-template-columns: 300px 1fr;
+            }
+        }
+        
+        @media (max-width: 900px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+                grid-template-rows: 60px auto 1fr;
+            }
+            
+            .controls-panel {
+                border-right: none;
+                border-bottom: 1px solid #30363d;
+                max-height: 300px;
+            }
+            
+            .results-container {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto auto;
+            }
+            
+            .main-content {
+                grid-template-rows: 300px 1fr;
+            }
+            
+            .header-buttons {
+                display: none;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (max-width: 600px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .day-toggle-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .trade-number-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            
+            .header .logo {
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">📊 ORB Trading Dashboard</div>
+            <div class="header-buttons">
+                <button class="btn btn-secondary" onclick="exportResults()">Export Results</button>
+                <button class="btn btn-secondary" onclick="saveConfig()">Save Config</button>
+            </div>
+        </div>
+        
+        <!-- Controls Panel -->
+        <div class="controls-panel">
+            <!-- Data Source Section -->
+            <div class="section">
+                <div class="section-title">📡 Data Source</div>
+                
+                <!-- Data Source Toggle -->
+                <div class="form-group">
+                    <div class="toggle-group">
+                        <button class="toggle-option active" onclick="toggleDataSource('api')">HyperLiquid API</button>
+                        <button class="toggle-option" onclick="toggleDataSource('upload')">Upload File</button>
+                    </div>
+                </div>
+                
+                <!-- HyperLiquid API Section -->
+                <div id="api-data-source">
+                    <div class="form-group">
+                        <label>Asset Symbol</label>
+                        <select id="asset-select">
+                            <option value="">Loading symbols...</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Chart Timeframe (Display)</label>
+                        <select id="chart-timeframe-select">
+                            <option value="5m">5 Minutes</option>
+                            <option value="15m">15 Minutes</option>
+                            <option value="30m">30 Minutes</option>
+                            <option value="1h">1 Hour</option>
+                            <option value="4h">4 Hours</option>
+                            <option value="1d">1 Day</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Backtest Timeframe (Execution)</label>
+                        <select id="backtest-timeframe-select">
+                            <option value="1m">1 Minute</option>
+                            <option value="3m">3 Minutes</option>
+                            <option value="5m">5 Minutes</option>
+                            <option value="15m">15 Minutes</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Start Date</label>
+                            <input type="date" id="start-date">
+                        </div>
+                        <div class="form-group">
+                            <label>End Date</label>
+                            <input type="date" id="end-date">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Save Location</label>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="text" id="save-path" placeholder="./data/" value="./data/" style="flex: 1;">
+                            <button class="btn btn-secondary" onclick="selectSaveLocation()" style="padding: 8px 12px; width: auto;">📁</button>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Estimated Data Size</label>
+                        <div style="font-size: 12px; color: #8b949e; padding: 8px; background: #21262d; border-radius: 6px; border: 1px solid #30363d;">
+                            <span id="data-size-estimate">Select dates to estimate</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Download Progress -->
+                    <div id="download-progress" class="progress-container hidden">
+                        <div class="progress-header">
+                            <span>Downloading...</span>
+                            <span id="progress-text">0%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div id="progress-fill" class="progress-fill"></div>
+                        </div>
+                    </div>
+                    
+                    <button class="btn" onclick="downloadData()" style="margin-top: 10px;">📥 Download Data</button>
+                </div>
+                
+                <!-- File Upload Section -->
+                <div id="file-data-source" class="hidden">
+                    <div class="file-upload" onclick="selectFile()">
+                        <div>📁 Upload OHLC Data</div>
+                        <div style="font-size: 12px; color: #8b949e; margin-top: 5px;">
+                            CSV, JSON supported<br>
+                            Chart and backtest data
+                        </div>
+                    </div>
+                    
+                    <div class="form-group" style="margin-top: 10px;">
+                        <label>Asset Symbol</label>
+                        <input type="text" id="manual-asset" placeholder="BTC, ETH, SOL..." value="BTCUSD">
+                    </div>
+                </div>
+                
+                <!-- Universal Settings -->
+                <div class="form-group" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #30363d;">
+                    <label>Tick Size</label>
+                    <input type="number" placeholder="0.01" value="0.01" step="0.001" id="tick-size">
+                </div>
+                
+                <!-- Data Status -->
+                <div id="data-status" class="status-message status-info hidden">
+                    No data loaded
+                </div>
+            </div>
+            
+            <!-- Session Configuration -->
+            <div class="section">
+                <div class="section-title">⏰ Session Config</div>
+                <div class="form-group">
+                    <label>Session Length (minutes)</label>
+                    <input type="number" id="session-length" value="240" placeholder="240" min="60" step="60">
+                </div>
+                <div class="form-group">
+                    <label>Opening Range (minutes)</label>
+                    <input type="number" id="opening-range" value="10" placeholder="10" min="1" step="1">
+                </div>
+                <div class="form-group">
+                    <label>Session Start Times (UTC)</label>
+                    <input type="text" id="session-starts" value="00:00, 04:00, 08:00, 12:00, 16:00, 20:00" placeholder="00:00, 04:00...">
+                </div>
+            </div>
+            
+            <!-- Stop/Target Method -->
+            <div class="section">
+                <div class="section-title">🎯 Stop/Target Method</div>
+                <div class="form-group">
+                    <div class="toggle-group">
+                        <button class="toggle-option active" onclick="toggleStopMethod('bar')">Bar-Based</button>
+                        <button class="toggle-option" onclick="toggleStopMethod('atr')">ATR-Based</button>
+                    </div>
+                </div>
+                
+                <!-- Bar-Based Parameters -->
+                <div id="bar-params">
+                    <div class="form-group">
+                        <label>Tick Buffer</label>
+                        <input type="number" id="tick-buffer" value="1" min="0">
+                    </div>
+                </div>
+                
+                <!-- ATR-Based Parameters -->
+                <div id="atr-params" class="conditional-params hidden">
+                    <div class="form-group">
+                        <label>ATR Period</label>
+                        <input type="number" id="atr-period" value="14" min="1">
+                    </div>
+                    <div class="form-group">
+                        <label>ATR Multiplier</label>
+                        <input type="number" id="atr-multiplier" value="0.5" step="0.1" min="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label>Minimum Stop (ticks)</label>
+                        <input type="number" id="min-stop-ticks" value="1" min="1">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Target R Multiple</label>
+                    <input type="number" id="target-r-multiple" value="1.5" step="0.1" min="0.5">
+                </div>
+            </div>
+            
+            <!-- Risk Management -->
+            <div class="section">
+                <div class="section-title">⚠️ Risk Management</div>
+                <div class="form-group">
+                    <label>Initial Position Size (1R)</label>
+                    <input type="number" id="initial-position-size" value="100" placeholder="100" min="1">
+                </div>
+                <div class="form-group">
+                    <label>Martingale Progression</label>
+                    <input type="text" id="martingale-progression" value="1, 2, 4, 8" placeholder="1, 2, 4, 8">
+                </div>
+                <div class="form-group">
+                    <label>Max Session Risk (R)</label>
+                    <input type="number" id="max-session-risk" value="15" placeholder="15" min="1">
+                </div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="section">
+                <button class="btn" onclick="runBacktest()">🚀 Run Backtest</button>
+                <button class="btn btn-secondary" style="margin-top: 10px;" onclick="optimizeParams()">🔍 Auto-Optimize</button>
+            </div>
+            
+            <!-- Post-Backtest Filters -->
+            <div class="section hidden" id="post-filters-section">
+                <div class="section-title">🔍 Post-Analysis Filters</div>
+                
+                <!-- Time Filters -->
+                <div class="form-group">
+                    <label>Exclude Days of Week</label>
+                    <div class="day-toggle-grid">
+                        <button class="toggle-option" data-day="0" onclick="toggleDay(0)">Sun</button>
+                        <button class="toggle-option" data-day="1" onclick="toggleDay(1)">Mon</button>
+                        <button class="toggle-option" data-day="2" onclick="toggleDay(2)">Tue</button>
+                        <button class="toggle-option" data-day="3" onclick="toggleDay(3)">Wed</button>
+                        <button class="toggle-option" data-day="4" onclick="toggleDay(4)">Thu</button>
+                        <button class="toggle-option" data-day="5" onclick="toggleDay(5)">Fri</button>
+                        <button class="toggle-option" data-day="6" onclick="toggleDay(6)">Sat</button>
+                        <button class="toggle-option" onclick="toggleAllDays()">All</button>
+                    </div>
+                </div>
+                
+                <!-- Time Windows -->
+                <div class="form-group">
+                    <label>Time Filters (UTC)</label>
+                    <div class="form-row">
+                        <select id="time-filter-mode">
+                            <option value="include">Include Only</option>
+                            <option value="exclude">Exclude</option>
+                        </select>
+                        <input type="text" id="time-windows" placeholder="00:00-08:00, 16:00-20:00">
+                    </div>
+                </div>
+                
+                <!-- Trade Sequence Filters -->
+                <div class="form-group">
+                    <label>Max Trades Per Session</label>
+                    <div class="form-row">
+                        <input type="number" id="max-trades-filter" placeholder="Unlimited" min="1">
+                        <select id="trade-selection-mode">
+                            <option value="first">Keep First N</option>
+                            <option value="last">Keep Last N</option>
+                            <option value="best">Keep Best N</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Trade Sequence Filter -->
+                <div class="form-group">
+                    <label>Include Trade Numbers</label>
+                    <div class="trade-number-grid">
+                        <button class="toggle-option active" data-trade="1" onclick="toggleTradeNumber(1)">1st</button>
+                        <button class="toggle-option active" data-trade="2" onclick="toggleTradeNumber(2)">2nd</button>
+                        <button class="toggle-option active" data-trade="3" onclick="toggleTradeNumber(3)">3rd</button>
+                        <button class="toggle-option active" data-trade="4" onclick="toggleTradeNumber(4)">4th</button>
+                        <button class="toggle-option active" data-trade="5" onclick="toggleTradeNumber(5)">5+</button>
+                    </div>
+                </div>
+                
+                <!-- Volatility Filters -->
+                <div class="form-group">
+                    <label>ATR Volatility Filter</label>
+                    <div class="form-row">
+                        <input type="number" id="min-atr-filter" placeholder="Min ATR" step="0.01">
+                        <input type="number" id="max-atr-filter" placeholder="Max ATR" step="0.01">
+                    </div>
+                </div>
+                
+                <!-- Date Range Filter -->
+                <div class="form-group">
+                    <label>Date Range</label>
+                    <div class="form-row">
+                        <input type="date" id="filter-start-date">
+                        <input type="date" id="filter-end-date">
+                    </div>
+                </div>
+                
+                <!-- Specific Trade Exclusions -->
+                <div class="form-group">
+                    <label>Exclude Specific Sessions/Trades</label>
+                    <textarea id="exclude-trades" placeholder="S001-T2, S005-T1, S012-T3..." style="height: 60px; resize: vertical;"></textarea>
+                </div>
+                
+                <!-- Prohibited Time Windows -->
+                <div class="form-group">
+                    <label>Prohibited Events/Times</label>
+                    <div class="checkbox-group">
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="exclude-us-open">
+                            <span>Exclude US Market Open (13:30-14:30 UTC)</span>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="exclude-fomc">
+                            <span>Exclude FOMC Announcements</span>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="exclude-news">
+                            <span>Exclude Major News Events</span>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="exclude-low-volume">
+                            <span>Exclude Low Volume Periods</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Apply Filters Button -->
+                <button class="btn" onclick="applyFilters()" style="margin-top: 15px;">🔄 Apply Filters</button>
+                <button class="btn btn-secondary" onclick="resetFilters()" style="margin-top: 10px;">↺ Reset All</button>
+            </div>
+        </div>
+        
+        <!-- Main Content Area -->
+        <div class="main-content">
+            <!-- Chart Section -->
+            <div class="chart-container">
+                <div class="section-title" style="margin-bottom: 15px;">📈 Price Chart & Trades</div>
+                <div id="chart-placeholder">
+                    <div class="chart-placeholder">
+                        Chart will be loaded here
+                        <br><small>TradingView Lightweight Charts 5.0.8</small>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Results Section -->
+            <div class="results-container">
+                <!-- Performance Stats & Trade Log -->
+                <div>
+                    <!-- Quick Stats -->
+                    <div class="section-title">📊 Performance Summary</div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <span></span>
+                        <div class="filter-status">
+                            <span id="filter-status">No data loaded</span>
+                        </div>
+                    </div>
+                    <div class="stats-grid" id="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value neutral">--</div>
+                            <div class="stat-label">Session Win Rate</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value neutral">--</div>
+                            <div class="stat-label">Total Return</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value neutral">--</div>
+                            <div class="stat-label">Avg Trades/Session</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value neutral">--</div>
+                            <div class="stat-label">Max Drawdown</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value neutral">--</div>
+                            <div class="stat-label">Profit Factor</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value neutral">--</div>
+                            <div class="stat-label">Total Sessions</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Trade Log -->
+                    <div class="table-container" id="trade-log-container">
+                        <div class="table-header">
+                            <span>📋 Trade Log</span>
+                            <div class="filter-chips" id="trade-filter-chips">
+                                <div class="chip active" onclick="filterTrades('all')">All</div>
+                                <div class="chip" onclick="filterTrades('wins')">Wins</div>
+                                <div class="chip" onclick="filterTrades('losses')">Losses</div>
+                                <div class="chip" onclick="filterTrades('trade1')">Trade 1</div>
+                                <div class="chip" onclick="filterTrades('trade2plus')">Trade 2+</div>
+                                <div class="chip" onclick="filterTrades('long')">Long</div>
+                                <div class="chip" onclick="filterTrades('short')">Short</div>
+                            </div>
+                        </div>
+                        <div class="table-content">
+                            <table id="trade-log-table">
+                                <thead>
+                                    <tr>
+                                        <th>Session</th>
+                                        <th>Trade#</th>
+                                        <th>Side</th>
+                                        <th>Entry</th>
+                                        <th>Exit</th>
+                                        <th>R Multiple</th>
+                                        <th>Duration</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="trade-log-tbody">
+                                    <tr>
+                                        <td colspan="7" style="text-align: center; color: #8b949e; padding: 40px;">
+                                            No trades to display. Run a backtest to see results.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Session Analysis -->
+                <div>
+                    <div class="section-title">🎯 Session Analysis</div>
+                    
+                    <!-- Session Summary -->
+                    <div class="table-container" id="session-summary-container">
+                        <div class="table-header">
+                            <span>Session Summary</span>
+                        </div>
+                        <div class="table-content">
+                            <table id="session-summary-table">
+                                <thead>
+                                    <tr>
+                                        <th>Session</th>
+                                        <th>Trades</th>
+                                        <th>Result</th>
+                                        <th>Duration</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="session-summary-tbody">
+                                    <tr>
+                                        <td colspan="4" style="text-align: center; color: #8b949e; padding: 40px;">
+                                            No sessions to display.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Optimization Results -->
+                    <div style="margin-top: 20px;">
+                        <div class="section-title">🔧 Parameter Optimization</div>
+                        <div class="table-container" id="optimization-results-container">
+                            <div class="table-header">
+                                <span>Top Configurations</span>
+                            </div>
+                            <div class="table-content">
+                                <table id="optimization-results-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Session</th>
+                                            <th>OR Range</th>
+                                            <th>Method</th>
+                                            <th>Win Rate</th>
+                                            <th>Total R</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="optimization-results-tbody">
+                                        <tr>
+                                            <td colspan="5" style="text-align: center; color: #8b949e; padding: 40px;">
+                                                Run optimization to see results.
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Progress Modal -->
+    <div id="progress-modal" class="progress-modal hidden">
+        <div class="progress-modal-content">
+            <div class="section-title" style="border: none; margin-bottom: 20px;">⚡ Processing...</div>
+            <div id="progress-message">Initializing...</div>
+            <div class="progress-bar">
+                <div id="modal-progress-fill" class="progress-fill"></div>
+            </div>
+            <div id="modal-progress-text">0%</div>
+        </div>
+    </div>
+
+    <script>
+        // Import chart types and functions from Lightweight Charts v5.0.8
+        const {
+            createChart,
+            IChartApi,
+            ISeriesApi,
+            CandlestickSeries,
+            BarSeries,
+            LineSeries,
+            HistogramSeries
+        } = LightweightCharts;
+
+        // Global variables for dashboard state
+        window.dashboardState = {
+            currentData: null,
+            chartData: null,
+            backtestData: null,
+            backtestResults: null,
+            currentFilters: {
+                excludedDays: [],
+                includedTradeNumbers: [1,2,3,4,5]
+            },
+            chart: null
+        };
+
+        // PART 1: UTILITY FUNCTIONS
+        function showElement(elementId) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.classList.remove('hidden');
+            }
+        }
+
+        function hideElement(elementId) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.classList.add('hidden');
+            }
+        }
+
+        function updateFilterStatus(text) {
+            const statusElement = document.getElementById('filter-status');
+            if (statusElement) {
+                statusElement.textContent = text;
+            }
+        }
+
+        // Line Chart Data Transform (from reference PricePanel.tsx:716-723)
+        function transformToLineData(data) {
+            if (!data || data.length === 0) return data;
+
+            return data.map(item => ({
+                time: item.time,
+                value: item.close // Use closing price as the line value
+            }));
+        }
+
+        // PART 2: CONTROLS PANEL LOGIC
+
+        // Data source management
+        function toggleDataSource(source) {
+            // Update toggle buttons
+            const buttons = document.querySelectorAll('.controls-panel .toggle-option');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Show/hide sections
+            const apiSection = document.getElementById('api-data-source');
+            const fileSection = document.getElementById('file-data-source');
+            
+            if (source === 'api') {
+                apiSection.classList.remove('hidden');
+                fileSection.classList.add('hidden');
+                // Load available symbols if not already loaded
+                if (document.getElementById('asset-select').children.length === 1) {
+                    loadAvailableSymbols();
+                }
+            } else {
+                apiSection.classList.add('hidden');
+                fileSection.classList.remove('hidden');
+            }
+        }
+
+        // Stop/target method toggle
+        function toggleStopMethod(method) {
+            // Update toggle buttons
+            const buttons = document.querySelectorAll('#bar-params, #atr-params').forEach(el => el.parentElement).querySelectorAll('.toggle-option');
+            document.querySelectorAll('.section .toggle-group .toggle-option').forEach(btn => {
+                if (btn.textContent.includes('Bar') || btn.textContent.includes('ATR')) {
+                    btn.classList.remove('active');
+                }
+            });
+            event.target.classList.add('active');
+            
+            // Show/hide parameter sections
+            const barParams = document.getElementById('bar-params');
+            const atrParams = document.getElementById('atr-params');
+            
+            if (method === 'bar') {
+                barParams.classList.remove('hidden');
+                atrParams.classList.add('hidden');
+            } else {
+                barParams.classList.add('hidden');
+                atrParams.classList.remove('hidden');
+            }
+        }
+
+        // Day filter toggles
+        function toggleDay(dayIndex) {
+            const button = event.target;
+            button.classList.toggle('active');
+            
+            // Update dashboard state
+            if (!window.dashboardState.currentFilters.excludedDays) {
+                window.dashboardState.currentFilters.excludedDays = [];
+            }
+            
+            const excludedDays = window.dashboardState.currentFilters.excludedDays;
+            const index = excludedDays.indexOf(dayIndex);
+            
+            if (button.classList.contains('active')) {
+                // Remove from excluded list
+                if (index > -1) {
+                    excludedDays.splice(index, 1);
+                }
+            } else {
+                // Add to excluded list
+                if (index === -1) {
+                    excludedDays.push(dayIndex);
+                }
+            }
+        }
+
+        function toggleAllDays() {
+            const dayButtons = document.querySelectorAll('[data-day]');
+            const allActive = Array.from(dayButtons).every(btn => btn.classList.contains('active'));
+            
+            dayButtons.forEach(btn => {
+                if (allActive) {
+                    btn.classList.remove('active');
+                } else {
+                    btn.classList.add('active');
+                }
+            });
+            
+            // Reset excluded days
+            window.dashboardState.currentFilters.excludedDays = allActive ? [0,1,2,3,4,5,6] : [];
+        }
+
+        // Trade number filter toggles
+        function toggleTradeNumber(tradeNum) {
+            const button = event.target;
+            button.classList.toggle('active');
+            
+            // Update dashboard state
+            if (!window.dashboardState.currentFilters.includedTradeNumbers) {
+                window.dashboardState.currentFilters.includedTradeNumbers = [1,2,3,4,5];
+            }
+            
+            const includedTrades = window.dashboardState.currentFilters.includedTradeNumbers;
+            const index = includedTrades.indexOf(tradeNum);
+            
+            if (button.classList.contains('active')) {
+                // Add to included list
+                if (index === -1) {
+                    includedTrades.push(tradeNum);
+                }
+            } else {
+                // Remove from included list
+                if (index > -1) {
+                    includedTrades.splice(index, 1);
+                }
+            }
+        }
+
+        // Data size estimation
+        function updateDataSizeEstimate() {
+            const startDate = document.getElementById('start-date').value;
+            const endDate = document.getElementById('end-date').value;
+            const chartTimeframe = document.getElementById('chart-timeframe-select').value;
+            const backtestTimeframe = document.getElementById('backtest-timeframe-select').value;
+            
+            if (!startDate || !endDate) {
+                document.getElementById('data-size-estimate').textContent = 'Select dates to estimate';
+                return;
+            }
+            
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+            
+            // Calculate candles for both timeframes
+            const timeframeToMinutes = {
+                '1m': 1, '3m': 3, '5m': 5, '15m': 15, '30m': 30,
+                '1h': 60, '2h': 120, '4h': 240, '8h': 480, '12h': 720, '1d': 1440
+            };
+            
+            const chartMinutes = timeframeToMinutes[chartTimeframe] || 60;
+            const backtestMinutes = timeframeToMinutes[backtestTimeframe] || 1;
+            
+            const chartCandles = Math.floor((days * 1440) / chartMinutes);
+            const backtestCandles = Math.floor((days * 1440) / backtestMinutes);
+            
+            // Estimate size (approximately 80 bytes per candle in JSON)
+            const totalCandles = chartCandles + backtestCandles;
+            const estimatedMB = (totalCandles * 80) / 1024 / 1024;
+            
+            document.getElementById('data-size-estimate').innerHTML = 
+                `Chart: ~${(chartCandles * 80 / 1024 / 1024).toFixed(1)} MB (${chartCandles.toLocaleString()} × ${chartTimeframe})<br>` +
+                `Backtest: ~${(backtestCandles * 80 / 1024 / 1024).toFixed(1)} MB (${backtestCandles.toLocaleString()} × ${backtestTimeframe})<br>` +
+                `<strong>Total: ~${estimatedMB.toFixed(1)} MB</strong>`;
+        }
+
+        // File selection handlers
+        function selectSaveLocation() {
+            // In a real implementation, this would open a native folder picker
+            alert('In a real app, this would open a folder picker. For now, edit the path manually.');
+        }
+
+        function selectFile() {
+            // In a real implementation, this would open a native file picker
+            alert('In a real app, this would open a file picker. For now, we\'ll focus on the API integration.');
+        }
+
+        // Configuration getters for other parts
+        function getSessionConfig() {
+            return {
+                sessionLength: parseInt(document.getElementById('session-length').value) || 240,
+                openingRange: parseInt(document.getElementById('opening-range').value) || 10,
+                sessionStarts: document.getElementById('session-starts').value.split(',').map(s => s.trim()),
+                stopMethod: document.querySelector('.section .toggle-group .toggle-option.active').textContent.toLowerCase().includes('bar') ? 'bar' : 'atr',
+                tickBuffer: parseInt(document.getElementById('tick-buffer').value) || 1,
+                atrPeriod: parseInt(document.getElementById('atr-period').value) || 14,
+                atrMultiplier: parseFloat(document.getElementById('atr-multiplier').value) || 0.5,
+                minStopTicks: parseInt(document.getElementById('min-stop-ticks').value) || 1,
+                targetRMultiple: parseFloat(document.getElementById('target-r-multiple').value) || 1.5,
+                initialPositionSize: parseInt(document.getElementById('initial-position-size').value) || 100,
+                martingaleProgression: document.getElementById('martingale-progression').value.split(',').map(s => parseFloat(s.trim())),
+                maxSessionRisk: parseInt(document.getElementById('max-session-risk').value) || 15,
+                tickSize: parseFloat(document.getElementById('tick-size').value) || 0.01
+            };
+        }
+
+        function getDataConfig() {
+            const isAPI = document.querySelector('.controls-panel .toggle-option.active').textContent.includes('API');
+            
+            if (isAPI) {
+                return {
+                    source: 'api',
+                    asset: document.getElementById('asset-select').value,
+                    chartTimeframe: document.getElementById('chart-timeframe-select').value,
+                    backtestTimeframe: document.getElementById('backtest-timeframe-select').value,
+                    startDate: document.getElementById('start-date').value,
+                    endDate: document.getElementById('end-date').value,
+                    savePath: document.getElementById('save-path').value
+                };
+            } else {
+                return {
+                    source: 'file',
+                    asset: document.getElementById('manual-asset').value
+                };
+            }
+        }
+
+        function resetFilters() {
+            // Reset all form inputs
+            document.getElementById('time-windows').value = '';
+            document.getElementById('max-trades-filter').value = '';
+            document.getElementById('min-atr-filter').value = '';
+            document.getElementById('max-atr-filter').value = '';
+            document.getElementById('filter-start-date').value = '';
+            document.getElementById('filter-end-date').value = '';
+            document.getElementById('exclude-trades').value = '';
+            
+            // Reset checkboxes
+            document.querySelectorAll('#post-filters-section input[type="checkbox"]').forEach(cb => {
+                cb.checked = false;
+            });
+            
+            // Reset day toggles (all active)
+            document.querySelectorAll('[data-day]').forEach(btn => {
+                btn.classList.add('active');
+            });
+            
+            // Reset trade number toggles (all active)
+            document.querySelectorAll('[data-trade]').forEach(btn => {
+                btn.classList.add('active');
+            });
+            
+            // Reset dashboard state
+            window.dashboardState.currentFilters = {
+                excludedDays: [],
+                includedTradeNumbers: [1,2,3,4,5]
+            };
+            
+            updateFilterStatus('Filters reset - showing all data');
+        }
+
+        // PART 3: HYPERLIQUID API INTEGRATION
+
+        // API Configuration
+        const HYPERLIQUID_API_URL = 'https://api.hyperliquid.xyz/info';
+
+        // Available symbols cache
+        let availableSymbols = [];
+
+        // Data storage
+        let downloadedData = {
+            chartData: null,
+            backtestData: null,
+            metadata: null
+        };
+
+        // Load available symbols from HyperLiquid API
+        async function loadAvailableSymbols() {
+            try {
+                updateDataStatus('Loading available symbols...', 'info');
+                
+                const response = await fetch(HYPERLIQUID_API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        type: 'metaAndAssetCtxs'
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API request failed: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                // Extract symbols from the response
+                availableSymbols = [];
+                
+                if (data && data.length > 0) {
+                    data.forEach(item => {
+                        if (item.name) {
+                            availableSymbols.push(item.name);
+                        }
+                    });
+                } else if (data.universe) {
+                    data.universe.forEach(asset => {
+                        if (asset.name) {
+                            availableSymbols.push(asset.name);
+                        }
+                    });
+                }
+                
+                // Fallback to common symbols if API structure is different
+                if (availableSymbols.length === 0) {
+                    availableSymbols = ['BTC', 'ETH', 'SOL', 'AVAX', 'MATIC', 'ARB', 'OP', 'DOGE', 'LTC', 'XRP'];
+                    console.warn('Using fallback symbol list. API response structure may have changed.');
+                }
+
+                // Populate the asset dropdown
+                populateAssetDropdown();
+                updateDataStatus('Symbols loaded successfully', 'success');
+                
+            } catch (error) {
+                console.error('Failed to load symbols:', error);
+                
+                // Use fallback symbols
+                availableSymbols = ['BTC', 'ETH', 'SOL', 'AVAX', 'MATIC', 'ARB', 'OP', 'DOGE', 'LTC', 'XRP'];
+                populateAssetDropdown();
+                updateDataStatus('Using fallback symbols (API error)', 'error');
+            }
+        }
+
+        // Populate asset dropdown with available symbols
+        function populateAssetDropdown() {
+            const select = document.getElementById('asset-select');
+            if (!select) return;
+            
+            // Clear existing options
+            select.innerHTML = '';
+            
+            // Add symbols
+            availableSymbols.forEach(symbol => {
+                const option = document.createElement('option');
+                option.value = symbol;
+                option.textContent = symbol;
+                select.appendChild(option);
+            });
+            
+            // Set default to BTC if available
+            if (availableSymbols.includes('BTC')) {
+                select.value = 'BTC';
+            }
+        }
+
+        // Download OHLC data from HyperLiquid API
+        async function downloadData() {
+            const config = getDataConfig();
+            
+            // Validate inputs
+            if (config.source === 'api') {
+                if (!config.asset || !config.startDate || !config.endDate) {
+                    alert('Please select asset and date range');
+                    return;
+                }
+                
+                const startDate = new Date(config.startDate);
+                const endDate = new Date(config.endDate);
+                
+                if (endDate <= startDate) {
+                    alert('End date must be after start date');
+                    return;
+                }
+                
+                // Check if date range is too large (HyperLiquid limit is ~5K bars)
+                const daysDiff = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+                const timeframeToMinutes = {
+                    '1m': 1, '3m': 3, '5m': 5, '15m': 15, '30m': 30,
+                    '1h': 60, '2h': 120, '4h': 240, '8h': 480, '12h': 720, '1d': 1440
+                };
+                
+                const backtestMinutes = timeframeToMinutes[config.backtestTimeframe] || 1;
+                const estimatedBars = Math.floor((daysDiff * 1440) / backtestMinutes);
+                
+                if (estimatedBars > 5000) {
+                    alert(`Estimated ${estimatedBars} bars exceeds HyperLiquid's 5K limit. Please reduce date range or use larger timeframe.`);
+                    return;
+                }
+            }
+            
+            try {
+                showElement('download-progress');
+                updateProgress(0, 'Starting download...');
+                
+                if (config.source === 'api') {
+                    await downloadFromAPI(config);
+                } else {
+                    // File upload will be handled here
+                    alert('File upload not implemented yet. Use API mode.');
+                    return;
+                }
+                
+                updateProgress(100, 'Download complete!');
+                
+                // Hide progress after a delay
+                setTimeout(() => {
+                    hideElement('download-progress');
+                }, 2000);
+                
+            } catch (error) {
+                console.error('Download failed:', error);
+                updateDataStatus(`Download failed: ${error.message}`, 'error');
+                hideElement('download-progress');
+            }
+        }
+
+        // Download data from HyperLiquid API
+        async function downloadFromAPI(config) {
+            const startTime = new Date(config.startDate).getTime();
+            const endTime = new Date(config.endDate).getTime();
+            
+            try {
+                // Download chart data (for display and ATR calculation)
+                updateProgress(10, 'Downloading chart data...');
+                const chartData = await fetchCandleData(config.asset, config.chartTimeframe, startTime, endTime);
+                
+                updateProgress(30, 'Processing chart data...');
+                const processedChartData = processCandleData(chartData, config.chartTimeframe);
+                
+                // Download backtest data (for execution granularity)
+                updateProgress(50, 'Downloading backtest data...');
+                const backtestData = await fetchCandleData(config.asset, config.backtestTimeframe, startTime, endTime);
+                
+                updateProgress(70, 'Processing backtest data...');
+                const processedBacktestData = processCandleData(backtestData, config.backtestTimeframe);
+                
+                // Store data
+                updateProgress(80, 'Storing data...');
+                downloadedData = {
+                    chartData: processedChartData,
+                    backtestData: processedBacktestData,
+                    metadata: {
+                        asset: config.asset,
+                        chartTimeframe: config.chartTimeframe,
+                        backtestTimeframe: config.backtestTimeframe,
+                        startDate: config.startDate,
+                        endDate: config.endDate,
+                        downloadTime: new Date().toISOString(),
+                        chartCandles: processedChartData.length,
+                        backtestCandles: processedBacktestData.length
+                    }
+                };
+                
+                // Update global state
+                window.dashboardState.chartData = processedChartData;
+                window.dashboardState.backtestData = processedBacktestData;
+                window.dashboardState.currentData = downloadedData;
+                
+                updateProgress(90, 'Saving to file...');
+                
+                // Save data to file
+                await saveDataToFile(downloadedData, config);
+                
+                updateProgress(100, 'Data ready for backtesting!');
+                
+                // Update status
+                const metadata = downloadedData.metadata;
+                updateDataStatus(
+                    `✅ Data loaded: ${metadata.asset} (${metadata.startDate} to ${metadata.endDate})<br>` +
+                    `📊 Chart: ${metadata.chartCandles} × ${metadata.chartTimeframe} | Backtest: ${metadata.backtestCandles} × ${metadata.backtestTimeframe}`,
+                    'success'
+                );
+                
+                // Load chart data if chart is available
+                if (window.loadChartData && typeof window.loadChartData === 'function') {
+                    console.log('Loading chart data from API download...');
+                    window.loadChartData(processedChartData);
+                }
+                
+            } catch (error) {
+                throw new Error(`API download failed: ${error.message}`);
+            }
+        }
+
+        // Fetch candle data from HyperLiquid API
+        async function fetchCandleData(coin, interval, startTime, endTime) {
+            const response = await fetch(HYPERLIQUID_API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    type: 'candleSnapshot',
+                    req: {
+                        coin: coin,
+                        interval: interval,
+                        startTime: startTime,
+                        endTime: endTime
+                    }
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HyperLiquid API error: ${response.status}`);
+            }
+
+            const data = await response.json();
+            
+            if (!Array.isArray(data)) {
+                throw new Error('Invalid API response format');
+            }
+            
+            return data;
+        }
+
+        // Process raw candle data into standardized format
+        function processCandleData(rawData, timeframe) {
+            return rawData.map(candle => ({
+                timestamp: candle.t,
+                time: candle.t / 1000, // Convert to seconds for TradingView
+                open: parseFloat(candle.o),
+                high: parseFloat(candle.h),
+                low: parseFloat(candle.l),
+                close: parseFloat(candle.c),
+                volume: parseFloat(candle.v),
+                trades: candle.n || 0,
+                timeframe: timeframe,
+                // Add calculated fields
+                hl2: (parseFloat(candle.h) + parseFloat(candle.l)) / 2,
+                hlc3: (parseFloat(candle.h) + parseFloat(candle.l) + parseFloat(candle.c)) / 3,
+                ohlc4: (parseFloat(candle.o) + parseFloat(candle.h) + parseFloat(candle.l) + parseFloat(candle.c)) / 4
+            }));
+        }
+
+        // Calculate ATR (Average True Range) for the chart data
+        function calculateATR(data, period = 14) {
+            if (!data || data.length < period + 1) {
+                return data.map(() => 0);
+            }
+            
+            const trueRanges = [];
+            const atrValues = [];
+            
+            // Calculate True Range for each bar
+            for (let i = 0; i < data.length; i++) {
+                if (i === 0) {
+                    // First bar: just high - low
+                    trueRanges.push(data[i].high - data[i].low);
+                } else {
+                    const tr1 = data[i].high - data[i].low;
+                    const tr2 = Math.abs(data[i].high - data[i-1].close);
+                    const tr3 = Math.abs(data[i].low - data[i-1].close);
+                    trueRanges.push(Math.max(tr1, tr2, tr3));
+                }
+            }
+            
+            // Calculate ATR using Simple Moving Average of True Range
+            for (let i = 0; i < data.length; i++) {
+                if (i < period - 1) {
+                    atrValues.push(0);
+                } else {
+                    const sum = trueRanges.slice(i - period + 1, i + 1).reduce((a, b) => a + b, 0);
+                    atrValues.push(sum / period);
+                }
+            }
+            
+            return atrValues;
+        }
+
+        // Save data to local file
+        async function saveDataToFile(data, config) {
+            try {
+                const filename = `${config.asset}_${config.chartTimeframe}_${config.backtestTimeframe}_${config.startDate}_${config.endDate}.json`;
+                
+                // Create downloadable file
+                const dataToSave = {
+                    metadata: data.metadata,
+                    chartData: data.chartData,
+                    backtestData: data.backtestData,
+                    downloadConfig: config,
+                    version: '1.0'
+                };
+                
+                const blob = new Blob([JSON.stringify(dataToSave, null, 2)], {
+                    type: 'application/json'
+                });
+                
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                console.log(`Data saved as: ${filename}`);
+                
+            } catch (error) {
+                console.error('Failed to save file:', error);
+                // Don't throw error here as download was successful
+            }
+        }
+
+        // Progress bar update
+        function updateProgress(percentage, message) {
+            const progressFill = document.getElementById('progress-fill');
+            const progressText = document.getElementById('progress-text');
+            
+            if (progressFill) {
+                progressFill.style.width = percentage + '%';
+            }
+            
+            if (progressText) {
+                progressText.textContent = `${Math.round(percentage)}%`;
+            }
+            
+            // Update the message in the progress header
+            const progressHeader = document.querySelector('.progress-header span');
+            if (progressHeader && message) {
+                progressHeader.textContent = message;
+            }
+        }
+
+        // Update data status message
+        function updateDataStatus(message, type = 'info') {
+            const statusElement = document.getElementById('data-status');
+            if (!statusElement) return;
+            
+            statusElement.innerHTML = message;
+            statusElement.className = `status-message status-${type}`;
+            statusElement.classList.remove('hidden');
+        }
+
+        // Data validation
+        function validateData() {
+            if (!downloadedData.chartData || !downloadedData.backtestData) {
+                return { valid: false, error: 'No data loaded' };
+            }
+            
+            if (downloadedData.chartData.length === 0) {
+                return { valid: false, error: 'Chart data is empty' };
+            }
+            
+            if (downloadedData.backtestData.length === 0) {
+                return { valid: false, error: 'Backtest data is empty' };
+            }
+            
+            // Check data integrity
+            const chartStart = downloadedData.chartData[0]?.timestamp;
+            const chartEnd = downloadedData.chartData[downloadedData.chartData.length - 1]?.timestamp;
+            const backtestStart = downloadedData.backtestData[0]?.timestamp;
+            const backtestEnd = downloadedData.backtestData[downloadedData.backtestData.length - 1]?.timestamp;
+            
+            if (!chartStart || !backtestStart) {
+                return { valid: false, error: 'Data timestamps are invalid' };
+            }
+            
+            // Check that backtest data covers the same period as chart data
+            if (backtestStart > chartStart || backtestEnd < chartEnd) {
+                console.warn('Backtest data does not fully cover chart data period');
+            }
+            
+            return { valid: true };
+        }
+
+        // Export functions for use by other parts
+        window.dashboardAPI = {
+            loadAvailableSymbols,
+            downloadData,
+            validateData,
+            calculateATR,
+            getChartData: () => downloadedData.chartData,
+            getBacktestData: () => downloadedData.backtestData,
+            getMetadata: () => downloadedData.metadata
+        };
+
+        // PART 4: LIGHTWEIGHT CHARTS 5.0.8 INTEGRATION
+
+        let chart = null;
+        let candlestickSeries = null;
+        let volumeSeries = null;
+        let tradeMarkers = [];
+        let sessionBoxes = [];
+
+        // Chart configuration - simplified for v5.0.8 compatibility
+        const chartConfig = {
+            width: 0, // Will be set dynamically
+            height: 350,
+            layout: {
+                background: { color: '#0d1117' },
+                textColor: '#e6edf3',
+            },
+            grid: {
+                vertLines: { color: '#30363d' },
+                horzLines: { color: '#30363d' },
+            },
+            crosshair: {
+                mode: 0, // Normal crosshair mode
+            },
+            rightPriceScale: {
+                borderColor: '#30363d',
+                textColor: '#e6edf3',
+            },
+            timeScale: {
+                borderColor: '#30363d',
+                textColor: '#e6edf3',
+                timeVisible: true,
+                secondsVisible: false,
+            },
+            watermark: {
+                visible: true,
+                fontSize: 48,
+                horzAlign: 'center',
+                vertAlign: 'center',
+                color: 'rgba(255, 255, 255, 0.05)',
+                text: 'ORB Dashboard',
+            },
+        };
+
+        // Initialize chart
+        function initializeChart() {
+            const chartContainer = document.getElementById('chart-placeholder');
+            if (!chartContainer) {
+                console.error('Chart container not found');
+                return;
+            }
+
+            // Clear existing chart
+            if (chart) {
+                chart.remove();
+                chart = null;
+            }
+
+            // Set chart width to container width
+            chartConfig.width = chartContainer.offsetWidth;
+            chartConfig.height = chartContainer.offsetHeight;
+
+            try {
+                // Verify LightweightCharts is available and debug what's available
+                if (typeof LightweightCharts === 'undefined') {
+                    throw new Error('LightweightCharts library not loaded');
+                }
+                
+                console.log('LightweightCharts object:', LightweightCharts);
+                console.log('Available methods on chart:', Object.getOwnPropertyNames(LightweightCharts.createChart(document.createElement('div'), {width: 100, height: 100}).__proto__));
+
+                // Create minimal chart config to avoid assertion failures
+                const minimalConfig = {
+                    width: chartContainer.offsetWidth,
+                    height: chartContainer.offsetHeight,
+                };
+
+                console.log('Creating chart with minimal config:', minimalConfig);
+                
+                // Create chart using v5.0.8 API with minimal config first
+                chart = createChart(chartContainer, minimalConfig);
+                console.log('Chart created successfully');
+
+                // Apply styling after creation - matching reference pattern
+                chart.applyOptions({
+                    layout: {
+                        background: { color: '#000000' },
+                        textColor: '#ffffff',
+                    },
+                    grid: {
+                        vertLines: { color: '#333333' },
+                        horzLines: { color: '#333333' },
+                    },
+                    crosshair: {
+                        mode: 1,
+                    },
+                    timeScale: {
+                        borderColor: '#485c7b',
+                        timeVisible: true,
+                        secondsVisible: false,
+                        rightOffset: 10,
+                    },
+                    rightPriceScale: {
+                        borderColor: '#485c7b',
+                        scaleMargins: {
+                            top: 0.1,
+                            bottom: 0.05,
+                        },
+                    },
+                });
+
+                // Add candlestick series using the correct v5.0.8 API
+                console.log('Adding candlestick series...');
+                
+                candlestickSeries = chart.addSeries(CandlestickSeries, {
+                    upColor: '#26a69a',
+                    downColor: '#ef5350',
+                    borderVisible: false,
+                    wickUpColor: '#26a69a',
+                    wickDownColor: '#ef5350',
+                    priceScaleId: 'right',
+                    priceFormat: {
+                        type: 'price',
+                        precision: 4,
+                        minMove: 0.0001,
+                    },
+                    lastValueVisible: false,
+                    priceLineVisible: false,
+                });
+                console.log('Candlestick series added successfully');
+
+                // Store chart reference globally
+                window.dashboardState.chart = chart;
+
+                console.log('Chart initialized successfully with Lightweight Charts v5.0.8');
+                
+                // Do NOT load data automatically during initialization
+                // Data will be loaded explicitly after download via loadChartData()
+
+            } catch (error) {
+                console.error('Failed to initialize chart:', error);
+                chartContainer.innerHTML = `
+                    <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #f85149;">
+                        <div>
+                            <div>Chart initialization failed</div>
+                            <div style="font-size: 12px; margin-top: 5px;">${error.message}</div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // Load chart data using v5.0.8 API with support for multiple chart types
+        function loadChartData(data, chartType = 'candles', decimals = 4) {
+            console.log('loadChartData called with data:', data ? data.length : 'null', 'chartType:', chartType);
+            
+            if (!chart) {
+                console.error('Chart not ready');
+                return;
+            }
+
+            if (!data || data.length === 0) {
+                console.warn('No data provided to loadChartData');
+                return;
+            }
+
+            try {
+                console.log('Raw data sample:', data.slice(0, 3));
+                
+                // Step 1: Validate and clean the data
+                const validatedData = validateAndCleanChartData(data);
+                console.log('Validated data sample:', validatedData.slice(0, 3));
+                
+                if (validatedData.length === 0) {
+                    throw new Error('No valid data after validation');
+                }
+
+                // Step 2: Remove existing series
+                if (candlestickSeries) {
+                    chart.removeSeries(candlestickSeries);
+                    candlestickSeries = null;
+                }
+
+                // Step 3: Create series based on chart type (following reference pattern)
+                let series;
+                let processedData = validatedData;
+
+                if (chartType === 'candles') {
+                    series = chart.addSeries(CandlestickSeries, {
+                        upColor: '#26a69a',
+                        downColor: '#ef5350',
+                        borderVisible: false,
+                        wickUpColor: '#26a69a',
+                        wickDownColor: '#ef5350',
+                        priceScaleId: 'right',
+                        priceFormat: {
+                            type: 'price',
+                            precision: decimals,
+                            minMove: Math.pow(10, -decimals),
+                        },
+                        lastValueVisible: false,
+                        priceLineVisible: false,
+                    });
+                } else if (chartType === 'ohlc') {
+                    series = chart.addSeries(BarSeries, {
+                        upColor: '#26a69a',
+                        downColor: '#ef5350',
+                        priceScaleId: 'right',
+                        priceFormat: {
+                            type: 'price',
+                            precision: decimals,
+                            minMove: Math.pow(10, -decimals),
+                        },
+                        lastValueVisible: false,
+                        priceLineVisible: false,
+                    });
+                } else {
+                    // Line chart
+                    series = chart.addSeries(LineSeries, {
+                        color: '#26a69a',
+                        lineWidth: 2,
+                        priceScaleId: 'right',
+                        priceFormat: {
+                            type: 'price',
+                            precision: decimals,
+                            minMove: Math.pow(10, -decimals),
+                        },
+                        lastValueVisible: false,
+                        priceLineVisible: false,
+                    });
+                    
+                    // Transform data for line chart
+                    processedData = transformToLineData(validatedData);
+                }
+
+                // Step 4: Set data using v5.0.8 API
+                series.setData(processedData);
+                console.log(`${chartType} data set successfully`);
+
+                // Store series reference
+                candlestickSeries = series;
+
+                // Auto-fit content
+                chart.timeScale().fitContent();
+
+                console.log(`✅ Chart loaded successfully with ${processedData.length} data points (${chartType})`);
+
+                // Update chart placeholder text
+                const chartContainer = document.getElementById('chart-placeholder');
+                if (chartContainer) {
+                    const placeholder = chartContainer.querySelector('.chart-placeholder');
+                    if (placeholder) {
+                        placeholder.style.display = 'none';
+                    }
+                }
+
+            } catch (error) {
+                console.error('❌ Failed to load chart data:', error);
+                
+                // Show error in chart area
+                const chartContainer = document.getElementById('chart-placeholder');
+                if (chartContainer) {
+                    chartContainer.innerHTML = `
+                        <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #f85149; text-align: center;">
+                            <div>
+                                <div style="font-size: 16px; margin-bottom: 10px;">⚠️ Chart Data Error</div>
+                                <div style="font-size: 12px; color: #8b949e;">${error.message}</div>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        // Comprehensive data validation and cleaning function
+        function validateAndCleanChartData(rawData) {
+            console.log('Validating chart data...');
+            
+            if (!Array.isArray(rawData)) {
+                throw new Error('Data is not an array');
+            }
+
+            // Step 1: Filter out invalid entries
+            const validEntries = rawData.filter((candle, index) => {
+                // Check required fields exist
+                if (!candle || typeof candle !== 'object') {
+                    console.warn(`Entry ${index}: Not an object`);
+                    return false;
+                }
+
+                // Check time field
+                const time = candle.time || (candle.timestamp ? candle.timestamp / 1000 : null);
+                if (!time || !Number.isFinite(time) || time <= 0) {
+                    console.warn(`Entry ${index}: Invalid time field`, time);
+                    return false;
+                }
+
+                // Check OHLC fields
+                const ohlc = [candle.open, candle.high, candle.low, candle.close];
+                if (!ohlc.every(val => Number.isFinite(val) && val > 0)) {
+                    console.warn(`Entry ${index}: Invalid OHLC values`, ohlc);
+                    return false;
+                }
+
+                // Validate OHLC logic (high >= open,close,low; low <= open,close,high)
+                if (candle.high < Math.max(candle.open, candle.close, candle.low) ||
+                    candle.low > Math.min(candle.open, candle.close, candle.high)) {
+                    console.warn(`Entry ${index}: OHLC logic error`, ohlc);
+                    return false;
+                }
+
+                return true;
+            });
+
+            console.log(`Filtered ${rawData.length} -> ${validEntries.length} valid entries`);
+
+            if (validEntries.length === 0) {
+                throw new Error('No valid entries found in data');
+            }
+
+            // Step 2: Normalize time format and ensure consistent structure
+            const normalizedData = validEntries.map(candle => ({
+                time: Math.floor(candle.time || (candle.timestamp / 1000)), // Ensure integer seconds
+                open: Number(candle.open),
+                high: Number(candle.high),
+                low: Number(candle.low),
+                close: Number(candle.close),
+                volume: Number(candle.volume) || 0
+            }));
+
+            // Step 3: Sort by time (ascending) - CRITICAL for Lightweight Charts
+            normalizedData.sort((a, b) => a.time - b.time);
+
+            // Step 4: Remove duplicate timestamps
+            const uniqueData = [];
+            let lastTime = null;
+            for (const candle of normalizedData) {
+                if (candle.time !== lastTime) {
+                    uniqueData.push(candle);
+                    lastTime = candle.time;
+                } else {
+                    console.warn('Removed duplicate timestamp:', candle.time);
+                }
+            }
+
+            console.log('✅ Data validation complete:', {
+                original: rawData.length,
+                valid: validEntries.length,
+                normalized: normalizedData.length,
+                unique: uniqueData.length,
+                timeRange: {
+                    start: new Date(uniqueData[0]?.time * 1000).toISOString(),
+                    end: new Date(uniqueData[uniqueData.length - 1]?.time * 1000).toISOString()
+                }
+            });
+
+            return uniqueData;
+        }
+
+        // Make loadChartData globally accessible
+        window.loadChartData = loadChartData;
+
+        // Add trade markers to the chart
+        function addTradeMarkers(trades) {
+            if (!chart || !candlestickSeries || !trades || trades.length === 0) {
+                return;
+            }
+
+            try {
+                // Clear existing markers
+                clearTradeMarkers();
+
+                // Prepare markers for v5.0.8
+                const markers = trades.map(trade => {
+                    const isLong = trade.side === 'LONG';
+                    const isEntry = trade.type === 'entry';
+                    
+                    let color = isLong ? '#56d364' : '#f85149';
+                    let shape = isEntry ? 'arrowUp' : 'arrowDown';
+                    let position = isEntry ? 'belowBar' : 'aboveBar';
+
+                    // Different shapes for entry vs exit
+                    if (!isEntry) {
+                        shape = isLong ? 'arrowDown' : 'arrowUp';
+                        position = isLong ? 'aboveBar' : 'belowBar';
+                        color = trade.pnl >= 0 ? '#56d364' : '#f85149';
+                    }
+
+                    return {
+                        time: trade.time,
+                        position: position,
+                        color: color,
+                        shape: shape,
+                        text: `${trade.side} ${trade.type ? trade.type.toUpperCase() : ''}\n${trade.price}\n${trade.pnlR ? `${trade.pnlR.toFixed(2)}R` : ''}`,
+                        size: 1,
+                    };
+                });
+
+                // Add markers using v5.0.8 API
+                candlestickSeries.setMarkers(markers);
+                tradeMarkers = markers;
+
+                console.log(`Added ${markers.length} trade markers to chart`);
+
+            } catch (error) {
+                console.error('Failed to add trade markers:', error);
+            }
+        }
+
+        // Add session boxes to show opening ranges
+        function addSessionBoxes(sessions) {
+            if (!chart || !sessions || sessions.length === 0) {
+                return;
+            }
+
+            try {
+                // Clear existing session boxes
+                clearSessionBoxes();
+
+                sessions.forEach((session, index) => {
+                    if (session.openingRange) {
+                        // Add opening range high line using correct v5.0.8 API
+                        const highLine = candlestickSeries.createPriceLine({
+                            price: session.openingRange.high,
+                            color: '#58a6ff',
+                            lineWidth: 1,
+                            lineStyle: 1, // Dashed line style
+                            axisLabelVisible: false,
+                            title: `OR High S${index + 1}`,
+                        });
+
+                        // Add opening range low line using correct v5.0.8 API
+                        const lowLine = candlestickSeries.createPriceLine({
+                            price: session.openingRange.low,
+                            color: '#58a6ff',
+                            lineWidth: 1,
+                            lineStyle: 1, // Dashed line style
+                            axisLabelVisible: false,
+                            title: `OR Low S${index + 1}`,
+                        });
+
+                        sessionBoxes.push(highLine, lowLine);
+                    }
+                });
+
+                console.log(`Added ${sessionBoxes.length / 2} session opening ranges to chart`);
+
+            } catch (error) {
+                console.error('Failed to add session boxes:', error);
+            }
+        }
+
+        // Clear trade markers
+        function clearTradeMarkers() {
+            if (candlestickSeries && tradeMarkers.length > 0) {
+                candlestickSeries.setMarkers([]);
+                tradeMarkers = [];
+            }
+        }
+
+        // Clear session boxes
+        function clearSessionBoxes() {
+            sessionBoxes.forEach(box => {
+                if (box && typeof box.remove === 'function') {
+                    box.remove();
+                }
+            });
+            sessionBoxes = [];
+        }
+
+        // Update chart with backtest results
+        function updateChartWithResults(backtestResults) {
+            if (!backtestResults) {
+                console.warn('No backtest results to display');
+                return;
+            }
+
+            try {
+                // Create trade markers from backtest trades
+                if (backtestResults.trades && backtestResults.trades.length > 0) {
+                    const chartMarkers = backtestResults.trades.flatMap(trade => {
+                        const markers = [];
+                        
+                        // Entry marker
+                        markers.push({
+                            time: trade.entryTime / 1000, // Convert to seconds
+                            side: trade.side,
+                            type: 'entry',
+                            price: trade.entryPrice,
+                            pnlR: null
+                        });
+                        
+                        // Exit marker
+                        markers.push({
+                            time: trade.exitTime / 1000, // Convert to seconds
+                            side: trade.side,
+                            type: 'exit',
+                            price: trade.exitPrice,
+                            pnlR: trade.pnlR
+                        });
+                        
+                        return markers;
+                    });
+                    
+                    addTradeMarkers(chartMarkers);
+                }
+
+                // Add session boxes
+                if (backtestResults.sessions) {
+                    addSessionBoxes(backtestResults.sessions);
+                }
+
+                // Fit content to show all data
+                if (chart) {
+                    chart.timeScale().fitContent();
+                }
+
+            } catch (error) {
+                console.error('Failed to update chart with results:', error);
+            }
+        }
+
+        // Resize chart when container size changes
+        function resizeChart() {
+            if (chart) {
+                const chartContainer = document.getElementById('chart-placeholder');
+                if (chartContainer) {
+                    chart.applyOptions({
+                        width: chartContainer.offsetWidth,
+                        height: chartContainer.offsetHeight,
+                    });
+                }
+            }
+        }
+
+        // Export chart as image
+        function exportChartImage() {
+            if (!chart) {
+                alert('No chart to export');
+                return;
+            }
+
+            try {
+                chart.takeScreenshot().then(canvas => {
+                    const link = document.createElement('a');
+                    link.download = `chart_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.png`;
+                    link.href = canvas.toDataURL();
+                    link.click();
+                });
+            } catch (error) {
+                console.error('Failed to export chart:', error);
+                alert('Chart export failed');
+            }
+        }
+
+        // Chart event handlers
+        function setupChartEventHandlers() {
+            if (!chart) {
+                return;
+            }
+
+            // Click handler for trade details
+            chart.subscribeClick((param) => {
+                if (param.time) {
+                    const trades = tradeMarkers.filter(marker => marker.time === param.time);
+                    if (trades.length > 0) {
+                        console.log('Trade clicked:', trades[0]);
+                        // Could show trade details popup here
+                    }
+                }
+            });
+
+            // Crosshair move handler
+            chart.subscribeCrosshairMove((param) => {
+                if (param.time) {
+                    // Could show price/time info here
+                }
+            });
+        }
+
+        // Export functions for use by other parts
+        window.dashboardChart = {
+            initializeChart,
+            loadChartData,
+            addTradeMarkers,
+            addSessionBoxes,
+            updateChartWithResults,
+            clearTradeMarkers,
+            clearSessionBoxes,
+            resizeChart,
+            exportChartImage
+        };
+
+        // PART 5: BACKTESTING ENGINE AND RESULTS
+
+        // Backtesting state
+        let backtestResults = null;
+        let optimizationResults = [];
+        let filteredResults = null;
+
+        // Core backtesting engine
+        class OpeningRangeBacktester {
+            constructor(config) {
+                this.config = config;
+                this.sessions = [];
+                this.allTrades = [];
+                this.stats = {};
+            }
+
+            // Main backtest execution
+            async runBacktest(chartData, backtestData) {
+                try {
+                    console.log('Starting backtest with config:', this.config);
+                    
+                    // Initialize
+                    this.sessions = [];
+                    this.allTrades = [];
+                    
+                    // Generate sessions
+                    const sessions = this.generateSessions(chartData);
+                    console.log(`Generated ${sessions.length} sessions`);
+                    
+                    // Process each session
+                    for (let i = 0; i < sessions.length; i++) {
+                        await this.processSession(sessions[i], chartData, backtestData);
+                        
+                        // Update progress
+                        if (i % 10 === 0) {
+                            const progress = Math.round((i / sessions.length) * 100);
+                            this.updateProgress(progress, `Processing session ${i + 1}/${sessions.length}`);
+                        }
+                    }
+                    
+                    // Calculate statistics
+                    this.calculateStatistics();
+                    
+                    console.log(`Backtest complete: ${this.allTrades.length} trades across ${this.sessions.length} sessions`);
+                    return this.getResults();
+                    
+                } catch (error) {
+                    console.error('Backtest failed:', error);
+                    throw error;
+                }
+            }
+
+            // Generate trading sessions based on configuration
+            generateSessions(chartData) {
+                const sessions = [];
+                const sessionLengthMs = this.config.sessionLength * 60 * 1000;
+                const openingRangeMs = this.config.openingRange * 60 * 1000;
+                
+                // Parse session start times
+                const startTimes = this.config.sessionStarts.map(timeStr => {
+                    const [hours, minutes] = timeStr.split(':').map(Number);
+                    return hours * 60 + minutes; // Convert to minutes from midnight
+                });
+
+                // Find first data point
+                const firstTimestamp = chartData[0].timestamp;
+                const startDate = new Date(firstTimestamp);
+                startDate.setUTCHours(0, 0, 0, 0); // Start from beginning of day
+
+                // Generate sessions
+                let currentDate = new Date(startDate);
+                const endDate = new Date(chartData[chartData.length - 1].timestamp);
+
+                while (currentDate <= endDate) {
+                    for (const startTimeMinutes of startTimes) {
+                        const sessionStart = new Date(currentDate);
+                        sessionStart.setUTCHours(Math.floor(startTimeMinutes / 60), startTimeMinutes % 60, 0, 0);
+                        
+                        const sessionEnd = new Date(sessionStart.getTime() + sessionLengthMs);
+                        const openingRangeEnd = new Date(sessionStart.getTime() + openingRangeMs);
+
+                        // Check if we have data for this session
+                        const sessionData = chartData.filter(candle => 
+                            candle.timestamp >= sessionStart.getTime() && 
+                            candle.timestamp < sessionEnd.getTime()
+                        );
+
+                        if (sessionData.length > 0) {
+                            sessions.push({
+                                id: `S${sessions.length + 1}`,
+                                startTime: sessionStart.getTime(),
+                                endTime: sessionEnd.getTime(),
+                                openingRangeStart: sessionStart.getTime(),
+                                openingRangeEnd: openingRangeEnd.getTime(),
+                                data: sessionData
+                            });
+                        }
+                    }
+                    
+                    // Move to next day
+                    currentDate.setUTCDate(currentDate.getUTCDate() + 1);
+                }
+
+                return sessions;
+            }
+
+            // Process individual session
+            async processSession(session, chartData, backtestData) {
+                try {
+                    // Calculate opening range
+                    const openingRange = this.calculateOpeningRange(session, chartData);
+                    if (!openingRange) {
+                        session.result = { trades: [], pnl: 0, reason: 'No opening range data' };
+                        this.sessions.push(session);
+                        return;
+                    }
+
+                    session.openingRange = openingRange;
+
+                    // Get relevant backtest data for this session
+                    const sessionBacktestData = backtestData.filter(candle =>
+                        candle.timestamp >= session.startTime &&
+                        candle.timestamp <= session.endTime
+                    );
+
+                    // Execute trades for this session
+                    const sessionTrades = await this.executeSessionTrades(session, sessionBacktestData, chartData);
+                    
+                    // Calculate session result
+                    const sessionPnL = sessionTrades.reduce((sum, trade) => sum + (trade.pnlR || 0), 0);
+                    
+                    session.result = {
+                        trades: sessionTrades,
+                        pnl: sessionPnL,
+                        tradeCount: sessionTrades.length,
+                        duration: this.calculateSessionDuration(sessionTrades),
+                        success: sessionPnL > 0
+                    };
+
+                    this.sessions.push(session);
+                    this.allTrades.push(...sessionTrades);
+
+                } catch (error) {
+                    console.error(`Session ${session.id} failed:`, error);
+                    session.result = { trades: [], pnl: 0, reason: `Error: ${error.message}` };
+                    this.sessions.push(session);
+                }
+            }
+
+            // Calculate opening range from chart data
+            calculateOpeningRange(session, chartData) {
+                const openingRangeData = chartData.filter(candle =>
+                    candle.timestamp >= session.openingRangeStart &&
+                    candle.timestamp <= session.openingRangeEnd
+                );
+
+                if (openingRangeData.length === 0) {
+                    return null;
+                }
+
+                const high = Math.max(...openingRangeData.map(c => c.high));
+                const low = Math.min(...openingRangeData.map(c => c.low));
+
+                return {
+                    high: high,
+                    low: low,
+                    startTime: session.openingRangeStart,
+                    endTime: session.openingRangeEnd,
+                    range: high - low
+                };
+            }
+
+            // Execute trades for a session using martingale strategy
+            async executeSessionTrades(session, backtestData, chartData) {
+                const trades = [];
+                let currentTradeNum = 1;
+                let sessionActive = true;
+                let targetReached = false;
+
+                // Get ATR if using ATR-based stops
+                let atr = 0;
+                if (this.config.stopMethod === 'atr') {
+                    const atrData = this.calculateATRForSession(session, chartData);
+                    atr = atrData[atrData.length - 1] || 0;
+                }
+
+                while (sessionActive && !targetReached && currentTradeNum <= 10) {
+                    const trade = await this.executeSingleTrade(
+                        session, 
+                        backtestData, 
+                        currentTradeNum,
+                        atr,
+                        trades
+                    );
+
+                    if (trade) {
+                        trades.push(trade);
+
+                        // Check if trade hit target (profit)
+                        if (trade.exitReason === 'target') {
+                            targetReached = true;
+                            sessionActive = false;
+                        }
+                        // If trade hit stop, continue to next trade in sequence
+                        else if (trade.exitReason === 'stop') {
+                            currentTradeNum++;
+                        }
+                        // If session ended, stop
+                        else if (trade.exitReason === 'session_end') {
+                            sessionActive = false;
+                        }
+                    } else {
+                        // No trade opportunity found
+                        sessionActive = false;
+                    }
+                }
+
+                return trades;
+            }
+
+            // Execute a single trade in the martingale sequence
+            async executeSingleTrade(session, backtestData, tradeNum, atr, previousTrades) {
+                try {
+                    // Determine trade direction based on sequence
+                    let direction = null;
+                    let entryPrice = null;
+                    let stopPrice = null;
+
+                    if (tradeNum === 1) {
+                        // First trade: wait for breakout in either direction
+                        const breakout = this.findFirstBreakout(session, backtestData);
+                        if (!breakout) return null;
+
+                        direction = breakout.direction;
+                        entryPrice = breakout.price;
+                    } else {
+                        // Subsequent trades: opposite direction at previous stop price
+                        const lastTrade = previousTrades[previousTrades.length - 1];
+                        if (!lastTrade || lastTrade.exitReason !== 'stop') return null;
+
+                        direction = lastTrade.side === 'LONG' ? 'SHORT' : 'LONG';
+                        entryPrice = lastTrade.stopPrice;
+                    }
+
+                    // Calculate stop and target prices
+                    const stopTarget = this.calculateStopAndTarget(
+                        direction, 
+                        entryPrice, 
+                        session.openingRange, 
+                        atr
+                    );
+
+                    if (!stopTarget) return null;
+
+                    stopPrice = stopTarget.stop;
+                    const targetPrice = stopTarget.target;
+
+                    // Calculate position size based on martingale progression
+                    const positionMultiplier = this.config.martingaleProgression[tradeNum - 1] || 1;
+                    const positionSize = this.config.initialPositionSize * positionMultiplier;
+
+                    // Find entry time
+                    const entryTime = this.findEntryTime(entryPrice, direction, backtestData, session);
+                    if (!entryTime) return null;
+
+                    // Simulate trade execution
+                    const exit = this.simulateTradeExecution(
+                        entryPrice,
+                        stopPrice,
+                        targetPrice,
+                        direction,
+                        backtestData,
+                        session,
+                        entryTime
+                    );
+
+                    if (!exit) return null;
+
+                    // Calculate P&L in R multiples
+                    const riskAmount = Math.abs(entryPrice - stopPrice);
+                    const pnlAmount = direction === 'LONG' ? 
+                        (exit.price - entryPrice) : 
+                        (entryPrice - exit.price);
+                    const pnlR = riskAmount > 0 ? pnlAmount / riskAmount : 0;
+
+                    // Create trade record
+                    const trade = {
+                        sessionId: session.id,
+                        tradeNumber: tradeNum,
+                        side: direction,
+                        entryPrice: entryPrice,
+                        entryTime: entryTime,
+                        stopPrice: stopPrice,
+                        targetPrice: targetPrice,
+                        exitPrice: exit.price,
+                        exitTime: exit.time,
+                        exitReason: exit.reason,
+                        positionSize: positionSize,
+                        positionMultiplier: positionMultiplier,
+                        pnlR: pnlR,
+                        pnlDollar: pnlAmount * positionSize,
+                        duration: exit.time - entryTime,
+                        riskAmount: riskAmount
+                    };
+
+                    return trade;
+
+                } catch (error) {
+                    console.error(`Trade execution failed:`, error);
+                    return null;
+                }
+            }
+
+            // Find first breakout of opening range
+            findFirstBreakout(session, backtestData) {
+                // Look for data after opening range ends
+                const postORData = backtestData.filter(candle => 
+                    candle.timestamp > session.openingRangeEnd
+                );
+
+                for (const candle of postORData) {
+                    // Check for breakout above opening range high
+                    if (candle.high > session.openingRange.high) {
+                        return {
+                            direction: 'LONG',
+                            price: session.openingRange.high,
+                            time: candle.timestamp
+                        };
+                    }
+                    // Check for breakdown below opening range low
+                    if (candle.low < session.openingRange.low) {
+                        return {
+                            direction: 'SHORT',
+                            price: session.openingRange.low,
+                            time: candle.timestamp
+                        };
+                    }
+                }
+
+                return null; // No breakout found
+            }
+
+            // Calculate stop and target prices
+            calculateStopAndTarget(direction, entryPrice, openingRange, atr) {
+                let stopPrice, targetPrice;
+
+                if (this.config.stopMethod === 'bar') {
+                    // Bar-based stops
+                    const tickBuffer = this.config.tickBuffer * this.config.tickSize;
+                    
+                    if (direction === 'LONG') {
+                        stopPrice = openingRange.low - tickBuffer;
+                    } else {
+                        stopPrice = openingRange.high + tickBuffer;
+                    }
+                } else {
+                    // ATR-based stops
+                    const atrStop = atr * this.config.atrMultiplier;
+                    const minStop = this.config.minStopTicks * this.config.tickSize;
+                    const stopDistance = Math.max(atrStop, minStop);
+
+                    if (direction === 'LONG') {
+                        stopPrice = entryPrice - stopDistance;
+                    } else {
+                        stopPrice = entryPrice + stopDistance;
+                    }
+                }
+
+                // Calculate target based on stop distance and R multiple
+                const stopDistance = Math.abs(entryPrice - stopPrice);
+                const targetDistance = stopDistance * this.config.targetRMultiple;
+
+                if (direction === 'LONG') {
+                    targetPrice = entryPrice + targetDistance;
+                } else {
+                    targetPrice = entryPrice - targetDistance;
+                }
+
+                return {
+                    stop: stopPrice,
+                    target: targetPrice,
+                    stopDistance: stopDistance,
+                    targetDistance: targetDistance
+                };
+            }
+
+            // Find entry time for a trade
+            findEntryTime(entryPrice, direction, backtestData, session) {
+                for (const candle of backtestData) {
+                    if (candle.timestamp <= session.openingRangeEnd) continue;
+                    if (candle.timestamp > session.endTime) break;
+
+                    // Check if price reached entry level
+                    if (direction === 'LONG' && candle.high >= entryPrice) {
+                        return candle.timestamp;
+                    }
+                    if (direction === 'SHORT' && candle.low <= entryPrice) {
+                        return candle.timestamp;
+                    }
+                }
+                return null;
+            }
+
+            // Simulate trade execution and find exit
+            simulateTradeExecution(entryPrice, stopPrice, targetPrice, direction, backtestData, session, entryTime) {
+                for (const candle of backtestData) {
+                    if (candle.timestamp <= entryTime) continue;
+                    if (candle.timestamp > session.endTime) {
+                        // Session ended, close at session end
+                        return {
+                            price: candle.close,
+                            time: session.endTime,
+                            reason: 'session_end'
+                        };
+                    }
+
+                    // Check for stop or target hit
+                    if (direction === 'LONG') {
+                        // For long trades: check stop first (conservative approach)
+                        if (candle.low <= stopPrice) {
+                            return {
+                                price: stopPrice,
+                                time: candle.timestamp,
+                                reason: 'stop'
+                            };
+                        }
+                        // Check target (require price to exceed target by at least 1 tick)
+                        if (candle.high >= targetPrice + this.config.tickSize) {
+                            return {
+                                price: targetPrice,
+                                time: candle.timestamp,
+                                reason: 'target'
+                            };
+                        }
+                    } else {
+                        // For short trades: check stop first (conservative approach)
+                        if (candle.high >= stopPrice) {
+                            return {
+                                price: stopPrice,
+                                time: candle.timestamp,
+                                reason: 'stop'
+                            };
+                        }
+                        // Check target (require price to exceed target by at least 1 tick)
+                        if (candle.low <= targetPrice - this.config.tickSize) {
+                            return {
+                                price: targetPrice,
+                                time: candle.timestamp,
+                                reason: 'target'
+                            };
+                        }
+                    }
+                }
+
+                // No exit found within session
+                return null;
+            }
+
+            // Calculate ATR for session
+            calculateATRForSession(session, chartData) {
+                // Get data leading up to and including the session
+                const relevantData = chartData.filter(candle =>
+                    candle.timestamp <= session.endTime
+                ).slice(-this.config.atrPeriod * 2); // Get enough data for ATR calculation
+
+                return calculateATR(relevantData, this.config.atrPeriod);
+            }
+
+            // Calculate session duration
+            calculateSessionDuration(trades) {
+                if (trades.length === 0) return 0;
+                
+                const firstEntry = Math.min(...trades.map(t => t.entryTime));
+                const lastExit = Math.max(...trades.map(t => t.exitTime));
+                
+                return lastExit - firstEntry;
+            }
+
+            // Update progress callback
+            updateProgress(percentage, message) {
+                if (window.updateBacktestProgress) {
+                    window.updateBacktestProgress(percentage, message);
+                }
+            }
+
+            // Calculate comprehensive statistics
+            calculateStatistics() {
+                const validSessions = this.sessions.filter(s => s.result && s.result.trades.length > 0);
+                const allTrades = this.allTrades;
+
+                if (validSessions.length === 0) {
+                    this.stats = { error: 'No valid sessions found' };
+                    return;
+                }
+
+                // Session-level stats
+                const sessionPnLs = validSessions.map(s => s.result.pnl);
+                const winningSessions = sessionPnLs.filter(pnl => pnl > 0);
+                const losingSessions = sessionPnLs.filter(pnl => pnl < 0);
+
+                // Trade-level stats
+                const winningTrades = allTrades.filter(t => t.pnlR > 0);
+                const losingTrades = allTrades.filter(t => t.pnlR < 0);
+
+                // Calculate statistics
+                this.stats = {
+                    // Session stats
+                    totalSessions: this.sessions.length,
+                    validSessions: validSessions.length,
+                    winningSessions: winningSessions.length,
+                    losingSessions: losingSessions.length,
+                    sessionWinRate: (winningSessions.length / validSessions.length) * 100,
+                    
+                    // Trade stats
+                    totalTrades: allTrades.length,
+                    winningTrades: winningTrades.length,
+                    losingTrades: losingTrades.length,
+                    tradeWinRate: allTrades.length > 0 ? (winningTrades.length / allTrades.length) * 100 : 0,
+                    
+                    // P&L stats
+                    totalReturnR: sessionPnLs.reduce((sum, pnl) => sum + pnl, 0),
+                    averageSessionR: sessionPnLs.reduce((sum, pnl) => sum + pnl, 0) / validSessions.length,
+                    averageWinningSessionR: winningSessions.length > 0 ? 
+                        winningSessions.reduce((sum, pnl) => sum + pnl, 0) / winningSessions.length : 0,
+                    averageLosingSessionR: losingSessions.length > 0 ?
+                        losingSessions.reduce((sum, pnl) => sum + pnl, 0) / losingSessions.length : 0,
+                    
+                    // Risk metrics
+                    maxDrawdown: this.calculateMaxDrawdown(sessionPnLs),
+                    profitFactor: this.calculateProfitFactor(sessionPnLs),
+                    sharpeRatio: this.calculateSharpeRatio(sessionPnLs),
+                    
+                    // Trade distribution
+                    averageTradesPerSession: allTrades.length / validSessions.length,
+                    maxTradesInSession: Math.max(...validSessions.map(s => s.result.tradeCount)),
+                    
+                    // Trade sequence analysis
+                    firstTradeWinRate: this.calculateTradeSequenceWinRate(1),
+                    secondTradeWinRate: this.calculateTradeSequenceWinRate(2),
+                    thirdPlusTradeWinRate: this.calculateTradeSequenceWinRate(3, true)
+                };
+            }
+
+            // Calculate maximum drawdown
+            calculateMaxDrawdown(pnls) {
+                let maxDrawdown = 0;
+                let peak = 0;
+                let runningTotal = 0;
+
+                for (const pnl of pnls) {
+                    runningTotal += pnl;
+                    peak = Math.max(peak, runningTotal);
+                    const drawdown = peak - runningTotal;
+                    maxDrawdown = Math.max(maxDrawdown, drawdown);
+                }
+
+                return maxDrawdown;
+            }
+
+            // Calculate profit factor
+            calculateProfitFactor(pnls) {
+                const profits = pnls.filter(pnl => pnl > 0).reduce((sum, pnl) => sum + pnl, 0);
+                const losses = Math.abs(pnls.filter(pnl => pnl < 0).reduce((sum, pnl) => sum + pnl, 0));
+                
+                return losses > 0 ? profits / losses : profits > 0 ? 999 : 0;
+            }
+
+            // Calculate Sharpe ratio (simplified)
+            calculateSharpeRatio(pnls) {
+                if (pnls.length < 2) return 0;
+                
+                const mean = pnls.reduce((sum, pnl) => sum + pnl, 0) / pnls.length;
+                const variance = pnls.reduce((sum, pnl) => sum + Math.pow(pnl - mean, 2), 0) / (pnls.length - 1);
+                const stdDev = Math.sqrt(variance);
+                
+                return stdDev > 0 ? mean / stdDev : 0;
+            }
+
+            // Calculate win rate for specific trade sequence
+            calculateTradeSequenceWinRate(tradeNumber, andAbove = false) {
+                let trades;
+                
+                if (andAbove) {
+                    trades = this.allTrades.filter(t => t.tradeNumber >= tradeNumber);
+                } else {
+                    trades = this.allTrades.filter(t => t.tradeNumber === tradeNumber);
+                }
+                
+                if (trades.length === 0) return 0;
+                
+                const winningTrades = trades.filter(t => t.pnlR > 0);
+                return (winningTrades.length / trades.length) * 100;
+            }
+
+            // Get complete results
+            getResults() {
+                return {
+                    sessions: this.sessions,
+                    trades: this.allTrades,
+                    stats: this.stats,
+                    config: this.config,
+                    timestamp: new Date().toISOString()
+                };
+            }
+        }
+
+        // Main backtest runner function
+        async function runBacktest() {
+            try {
+                // Validate data
+                const dataValidation = validateData();
+                if (!dataValidation.valid) {
+                    alert(`Cannot run backtest: ${dataValidation.error}`);
+                    return;
+                }
+
+                // Get configuration
+                const config = getSessionConfig();
+                console.log('Backtest config:', config);
+
+                // Get data
+                const chartData = downloadedData.chartData;
+                const backtestData = downloadedData.backtestData;
+
+                if (!chartData || !backtestData) {
+                    alert('No data available for backtesting. Please download data first.');
+                    return;
+                }
+
+                // Show progress
+                showBacktestProgress();
+                updateBacktestProgress(0, 'Initializing backtest...');
+
+                // Create backtester
+                const backtester = new OpeningRangeBacktester(config);
+
+                // Run backtest
+                updateBacktestProgress(10, 'Starting backtest engine...');
+                const results = await backtester.runBacktest(chartData, backtestData);
+
+                // Store results
+                backtestResults = results;
+                window.dashboardState.backtestResults = results;
+
+                // Update UI
+                updateBacktestProgress(90, 'Updating results display...');
+                await updateResultsDisplay(results);
+                
+                // Update chart
+                if (window.dashboardChart && window.dashboardChart.updateChartWithResults) {
+                    window.dashboardChart.updateChartWithResults(results);
+                }
+
+                // Show post-filters
+                showElement('post-filters-section');
+
+                // Hide progress
+                updateBacktestProgress(100, 'Backtest complete!');
+                setTimeout(hideBacktestProgress, 2000);
+
+                console.log('Backtest completed successfully');
+
+            } catch (error) {
+                console.error('Backtest failed:', error);
+                alert(`Backtest failed: ${error.message}`);
+                hideBacktestProgress();
+            }
+        }
+
+        // Update results display
+        async function updateResultsDisplay(results) {
+            try {
+                // Update statistics cards
+                updateStatsCards(results.stats);
+                
+                // Update trade log
+                updateTradeLog(results.trades);
+                
+                // Update session summary
+                updateSessionSummary(results.sessions);
+                
+                // Update filter status
+                updateFilterStatus(`Showing: All trades (${results.trades.length} trades, ${results.sessions.length} sessions)`);
+
+            } catch (error) {
+                console.error('Failed to update results display:', error);
+            }
+        }
+
+        // Update statistics cards
+        function updateStatsCards(stats) {
+            if (!stats || stats.error) {
+                return;
+            }
+
+            const updates = [
+                { selector: '.stat-card:nth-child(1) .stat-value', value: `${stats.sessionWinRate?.toFixed(1) || 0}%`, class: stats.sessionWinRate > 50 ? 'positive' : 'negative' },
+                { selector: '.stat-card:nth-child(2) .stat-value', value: `${stats.totalReturnR?.toFixed(1) || 0}R`, class: stats.totalReturnR > 0 ? 'positive' : 'negative' },
+                { selector: '.stat-card:nth-child(3) .stat-value', value: stats.averageTradesPerSession?.toFixed(1) || '0', class: 'neutral' },
+                { selector: '.stat-card:nth-child(4) .stat-value', value: `${stats.maxDrawdown?.toFixed(1) || 0}R`, class: 'negative' },
+                { selector: '.stat-card:nth-child(5) .stat-value', value: stats.profitFactor?.toFixed(2) || '0', class: stats.profitFactor > 1 ? 'positive' : 'negative' },
+                { selector: '.stat-card:nth-child(6) .stat-value', value: stats.totalSessions || '0', class: 'neutral' }
+            ];
+
+            updates.forEach(update => {
+                const element = document.querySelector(update.selector);
+                if (element) {
+                    element.textContent = update.value;
+                    element.className = `stat-value ${update.class}`;
+                }
+            });
+        }
+
+        // Update trade log table
+        function updateTradeLog(trades) {
+            const tbody = document.getElementById('trade-log-tbody');
+            if (!tbody) return;
+
+            if (trades.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" style="text-align: center; color: #8b949e; padding: 40px;">
+                            No trades to display.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = trades.map(trade => {
+                const duration = formatDuration(trade.duration);
+                const pnlClass = trade.pnlR > 0 ? 'positive' : 'negative';
+                const sideClass = trade.side === 'LONG' ? 'trade-long' : 'trade-short';
+
+                return `
+                    <tr>
+                        <td>${trade.sessionId}</td>
+                        <td>${trade.tradeNumber}</td>
+                        <td class="${sideClass}">${trade.side}</td>
+                        <td>${trade.entryPrice.toFixed(2)}</td>
+                        <td>${trade.exitPrice.toFixed(2)}</td>
+                        <td class="stat-value ${pnlClass}">${trade.pnlR.toFixed(2)}R</td>
+                        <td>${duration}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            // Add filter chips
+            updateTradeFilterChips();
+        }
+
+        // Update session summary table
+        function updateSessionSummary(sessions) {
+            const tbody = document.getElementById('session-summary-tbody');
+            if (!tbody) return;
+
+            if (sessions.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="4" style="text-align: center; color: #8b949e; padding: 40px;">
+                            No sessions to display.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = sessions.map(session => {
+                const result = session.result || { trades: [], pnl: 0, duration: 0 };
+                const duration = formatDuration(result.duration);
+                const pnlClass = result.pnl > 0 ? 'positive' : result.pnl < 0 ? 'negative' : 'neutral';
+
+                return `
+                    <tr>
+                        <td>${session.id}</td>
+                        <td>${result.trades.length}</td>
+                        <td class="stat-value ${pnlClass}">${result.pnl.toFixed(2)}R</td>
+                        <td>${duration}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Filter trades based on criteria
+        function filterTrades(type) {
+            if (!backtestResults || !backtestResults.trades) {
+                return;
+            }
+
+            // Update active chip
+            document.querySelectorAll('#trade-filter-chips .chip').forEach(chip => {
+                chip.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            let filteredTrades = backtestResults.trades;
+            let statusText = 'Showing: ';
+
+            switch(type) {
+                case 'all':
+                    statusText += `All trades (${filteredTrades.length} trades)`;
+                    break;
+                case 'wins':
+                    filteredTrades = filteredTrades.filter(t => t.pnlR > 0);
+                    statusText += `Winning trades only (${filteredTrades.length} trades)`;
+                    break;
+                case 'losses':
+                    filteredTrades = filteredTrades.filter(t => t.pnlR <= 0);
+                    statusText += `Losing trades only (${filteredTrades.length} trades)`;
+                    break;
+                case 'trade1':
+                    filteredTrades = filteredTrades.filter(t => t.tradeNumber === 1);
+                    statusText += `First trades only (${filteredTrades.length} trades)`;
+                    break;
+                case 'trade2plus':
+                    filteredTrades = filteredTrades.filter(t => t.tradeNumber >= 2);
+                    statusText += `Subsequent trades only (${filteredTrades.length} trades)`;
+                    break;
+                case 'long':
+                    filteredTrades = filteredTrades.filter(t => t.side === 'LONG');
+                    statusText += `Long trades only (${filteredTrades.length} trades)`;
+                    break;
+                case 'short':
+                    filteredTrades = filteredTrades.filter(t => t.side === 'SHORT');
+                    statusText += `Short trades only (${filteredTrades.length} trades)`;
+                    break;
+            }
+
+            updateTradeLog(filteredTrades);
+            updateFilterStatus(statusText);
+        }
+
+        // Apply comprehensive filters from post-analysis panel
+        function applyFilters() {
+            alert('Advanced filtering will be implemented in the next version. Use the basic trade filters above for now.');
+        }
+
+        // Parameter optimization function (simplified version)
+        async function optimizeParams() {
+            alert('Parameter optimization is a advanced feature that will run multiple backtests with different configurations. This may take several minutes and will be implemented in the next version.');
+        }
+
+        // Progress functions
+        function showBacktestProgress() {
+            showElement('progress-modal');
+        }
+
+        function updateBacktestProgress(percentage, message) {
+            const progressFill = document.getElementById('modal-progress-fill');
+            const progressText = document.getElementById('modal-progress-text');
+            const progressMessage = document.getElementById('progress-message');
+            
+            if (progressFill) {
+                progressFill.style.width = percentage + '%';
+            }
+            
+            if (progressText) {
+                progressText.textContent = `${Math.round(percentage)}%`;
+            }
+            
+            if (progressMessage) {
+                progressMessage.textContent = message;
+            }
+        }
+
+        function hideBacktestProgress() {
+            hideElement('progress-modal');
+        }
+
+        // Utility functions
+        function formatDuration(milliseconds) {
+            if (!milliseconds) return '0m';
+            
+            const minutes = Math.floor(milliseconds / 60000);
+            const hours = Math.floor(minutes / 60);
+            const days = Math.floor(hours / 24);
+            
+            if (days > 0) {
+                return `${days}d ${hours % 24}h`;
+            } else if (hours > 0) {
+                return `${hours}h ${minutes % 60}m`;
+            } else {
+                return `${minutes}m`;
+            }
+        }
+
+        function updateTradeFilterChips() {
+            // Filter chips are already in the HTML
+        }
+
+        // PART 6: MISSING CRITICAL FUNCTIONS
+
+        // Export functions for header buttons
+        function exportResults() {
+            if (!backtestResults || !backtestResults.trades) {
+                alert('No backtest results to export. Run a backtest first.');
+                return;
+            }
+
+            try {
+                // Prepare CSV data
+                const headers = ['Session ID', 'Trade Number', 'Side', 'Entry Price', 'Exit Price', 'Stop Price', 'Target Price', 'Entry Time', 'Exit Time', 'Exit Reason', 'P&L (R)', 'Duration (minutes)', 'Position Size'];
+                
+                const csvRows = [headers.join(',')];
+                
+                backtestResults.trades.forEach(trade => {
+                    const row = [
+                        trade.sessionId,
+                        trade.tradeNumber,
+                        trade.side,
+                        trade.entryPrice.toFixed(2),
+                        trade.exitPrice.toFixed(2),
+                        trade.stopPrice.toFixed(2),
+                        trade.targetPrice.toFixed(2),
+                        new Date(trade.entryTime).toISOString(),
+                        new Date(trade.exitTime).toISOString(),
+                        trade.exitReason,
+                        trade.pnlR.toFixed(3),
+                        Math.round(trade.duration / 60000),
+                        trade.positionSize
+                    ];
+                    csvRows.push(row.join(','));
+                });
+
+                // Create and download CSV file
+                const csvContent = csvRows.join('\n');
+                const blob = new Blob([csvContent], { type: 'text/csv' });
+                const url = URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `ORB_backtest_results_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                // Also export summary statistics
+                const summaryData = {
+                    backtestConfig: backtestResults.config,
+                    summaryStats: backtestResults.stats,
+                    metadata: {
+                        exportTime: new Date().toISOString(),
+                        totalTrades: backtestResults.trades.length,
+                        totalSessions: backtestResults.sessions.length
+                    }
+                };
+
+                const summaryBlob = new Blob([JSON.stringify(summaryData, null, 2)], { type: 'application/json' });
+                const summaryUrl = URL.createObjectURL(summaryBlob);
+                
+                const summaryLink = document.createElement('a');
+                summaryLink.href = summaryUrl;
+                summaryLink.download = `ORB_backtest_summary_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.json`;
+                document.body.appendChild(summaryLink);
+                summaryLink.click();
+                document.body.removeChild(summaryLink);
+                URL.revokeObjectURL(summaryUrl);
+
+                alert('Results exported successfully! Check your downloads for CSV trades and JSON summary files.');
+
+            } catch (error) {
+                console.error('Export failed:', error);
+                alert('Failed to export results. Please try again.');
+            }
+        }
+
+        function saveConfig() {
+            try {
+                const config = {
+                    dataConfig: getDataConfig(),
+                    sessionConfig: getSessionConfig(),
+                    timestamp: new Date().toISOString(),
+                    version: '1.0'
+                };
+
+                const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `ORB_config_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                alert('Configuration saved successfully!');
+
+            } catch (error) {
+                console.error('Save config failed:', error);
+                alert('Failed to save configuration. Please try again.');
+            }
+        }
+
+        // Initialize dashboard with default dates and settings
+        function initializeDashboard() {
+            try {
+                // Set default dates (last 30 days)
+                const endDate = new Date();
+                const startDate = new Date();
+                startDate.setDate(endDate.getDate() - 30);
+
+                const startDateInput = document.getElementById('start-date');
+                const endDateInput = document.getElementById('end-date');
+
+                if (startDateInput && endDateInput) {
+                    startDateInput.value = startDate.toISOString().split('T')[0];
+                    endDateInput.value = endDate.toISOString().split('T')[0];
+                }
+
+                // Initialize chart
+                if (window.dashboardChart && window.dashboardChart.initializeChart) {
+                    window.dashboardChart.initializeChart();
+                }
+
+                // Load symbols if in API mode
+                if (window.dashboardAPI && window.dashboardAPI.loadAvailableSymbols) {
+                    window.dashboardAPI.loadAvailableSymbols();
+                }
+
+                // Set up data size estimation
+                updateDataSizeEstimate();
+
+                // Initialize filter status
+                updateFilterStatus('No data loaded - download data to begin');
+
+                console.log('Dashboard initialized successfully');
+
+            } catch (error) {
+                console.error('Dashboard initialization failed:', error);
+            }
+        }
+
+        // Set up all event listeners
+        function setupEventListeners() {
+            try {
+                // Date change listeners for size estimation
+                const startDateInput = document.getElementById('start-date');
+                const endDateInput = document.getElementById('end-date');
+                const chartTimeframeSelect = document.getElementById('chart-timeframe-select');
+                const backtestTimeframeSelect = document.getElementById('backtest-timeframe-select');
+
+                if (startDateInput) {
+                    startDateInput.addEventListener('change', updateDataSizeEstimate);
+                }
+                if (endDateInput) {
+                    endDateInput.addEventListener('change', updateDataSizeEstimate);
+                }
+                if (chartTimeframeSelect) {
+                    chartTimeframeSelect.addEventListener('change', updateDataSizeEstimate);
+                }
+                if (backtestTimeframeSelect) {
+                    backtestTimeframeSelect.addEventListener('change', updateDataSizeEstimate);
+                }
+
+                // Window resize handler for chart
+                window.addEventListener('resize', () => {
+                    if (window.dashboardChart && window.dashboardChart.resizeChart) {
+                        setTimeout(() => {
+                            window.dashboardChart.resizeChart();
+                        }, 100);
+                    }
+                });
+
+                console.log('Event listeners set up successfully');
+
+            } catch (error) {
+                console.error('Event listener setup failed:', error);
+            }
+        }
+
+        // Global error handler
+        window.addEventListener('error', function(event) {
+            console.error('Global error:', event.error);
+            
+            // Hide any progress modals on error
+            hideElement('progress-modal');
+            hideElement('download-progress');
+        });
+
+        // Handle uncaught promise rejections
+        window.addEventListener('unhandledrejection', function(event) {
+            console.error('Unhandled promise rejection:', event.reason);
+            
+            // Hide any progress modals on error
+            hideElement('progress-modal');
+            hideElement('download-progress');
+        });
+
+        // PART 7: INITIALIZATION AND STARTUP
+
+        // Main initialization when DOM is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('ORB Trading Dashboard starting up...');
+            
+            try {
+                // Initialize dashboard
+                initializeDashboard();
+                
+                // Set up event listeners
+                setupEventListeners();
+                
+                console.log('✅ ORB Trading Dashboard loaded successfully');
+                console.log('📊 TradingView Lightweight Charts 5.0.8 ready');
+                console.log('🔗 HyperLiquid API integration ready');
+                console.log('🚀 Ready to download data and run backtests');
+                
+                // Small delay to ensure everything is loaded
+                setTimeout(() => {
+                    // Update data size estimate with default dates
+                    updateDataSizeEstimate();
+                }, 100);
+                
+            } catch (error) {
+                console.error('❌ Dashboard startup failed:', error);
+                
+                // Show error message in the UI
+                const chartContainer = document.getElementById('chart-placeholder');
+                if (chartContainer) {
+                    chartContainer.innerHTML = `
+                        <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #f85149; text-align: center;">
+                            <div>
+                                <div style="font-size: 18px; margin-bottom: 10px;">⚠️ Dashboard Failed to Load</div>
+                                <div style="font-size: 14px; color: #8b949e;">Check console for details</div>
+                                <div style="font-size: 12px; margin-top: 10px; color: #8b949e;">${error.message}</div>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+        });
+
+        console.log('📈 Opening Range Breakout (ORB) Trading Dashboard v1.0');
+        console.log('🔧 Built with: TradingView Lightweight Charts 5.0.8, HyperLiquid API');
+        console.log('💡 Strategy: Opening Range Breakout with Martingale Position Sizing');
+        console.log('⚡ Single HTML file - fully self-contained');
+    </script>
+</body>
+</html>

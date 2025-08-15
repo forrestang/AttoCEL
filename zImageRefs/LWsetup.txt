@@ -1,0 +1,121 @@
+Reference Claude.md for basic global system prompts, read project_documentation.md. Familiarize urself w/the code base. Check notes from github pushes.
+
+Keep ur responses brief, give me only necessary information so I dont have to read long walls of text.
+
+--------------
+
+I need to implement TradingView Lightweight Charts.  Currently you can't get it to work.  This is from a different directory, in a different project that works.  This is a prompt claude code generated to help you get the charts working properly for v.5.0.8:
+
+  1. Imports (from PricePanel.tsx:4-12):
+  import {
+    createChart,
+    IChartApi,
+    ISeriesApi,
+    CandlestickSeries,
+    BarSeries,
+    LineSeries,
+    HistogramSeries
+  } from 'lightweight-charts';
+
+  2. Chart Creation (from PricePanel.tsx:352-379):
+  const chart = createChart(chartContainerRef.current, {
+    width: chartContainerRef.current.clientWidth,
+    height: chartHeight,
+    layout: {
+      background: { color: '#000000' },
+      textColor: '#ffffff',
+    },
+    grid: {
+      vertLines: { color: '#333333' },
+      horzLines: { color: '#333333' },
+    },
+    crosshair: {
+      mode: 1,
+    },
+    timeScale: {
+      borderColor: '#485c7b',
+      timeVisible: true,
+      secondsVisible: false,
+      rightOffset: 10,
+    },
+    rightPriceScale: {
+      borderColor: '#485c7b',
+      scaleMargins: {
+        top: 0.1,
+        bottom: 0.05,
+      },
+    },
+  });
+
+  3. Series Creation (from PricePanel.tsx:1062-1104):
+  let series: ISeriesApi<any>;
+
+  if (chartType === 'candles') {
+    series = chartRef.current.addSeries(CandlestickSeries, {
+      upColor: token.color,
+      downColor: token.color,
+      borderVisible: false,
+      wickUpColor: token.color,
+      wickDownColor: token.color,
+      priceScaleId: 'right',
+      priceFormat: {
+        type: 'price',
+        precision: decimals,
+        minMove: Math.pow(10, -decimals),
+      },
+      lastValueVisible: false,
+      priceLineVisible: false,
+    });
+  } else if (chartType === 'ohlc') {
+    series = chartRef.current.addSeries(BarSeries, {
+      upColor: token.color,
+      downColor: token.color,
+      priceScaleId: 'right',
+      priceFormat: {
+        type: 'price',
+        precision: decimals,
+        minMove: Math.pow(10, -decimals),
+      },
+      lastValueVisible: false,
+      priceLineVisible: false,
+    });
+  } else {
+    series = chartRef.current.addSeries(LineSeries, {
+      color: token.color,
+      lineWidth: 2,
+      priceScaleId: 'right',
+      priceFormat: {
+        type: 'price',
+        precision: decimals,
+        minMove: Math.pow(10, -decimals),
+      },
+      lastValueVisible: false,
+      priceLineVisible: false,
+    });
+  }
+
+  4. Line Chart Data Transform (from PricePanel.tsx:716-723):
+  const transformToLineData = (data: any[]) => {
+    if (!data || data.length === 0) return data;
+
+    return data.map(item => ({
+      time: item.time,
+      value: item.close // Use closing price as the line value
+    }));
+  };
+
+  5. Setting Data (from PricePanel.tsx:1228-1231):
+  if (chartType === 'line') {
+    processedData = transformToLineData(processedData);
+  }
+
+  series.setData(processedData);
+
+  Key Implementation Notes from PricePanel.tsx:
+  - Chart data format: {time: timestamp, open, high, low, close} for candles/bars      
+  - Line data format: {time: timestamp, value: close}
+  - Use Math.pow(10, -decimals) for minMove calculation
+  - Colors come from token.color property
+  - Always set lastValueVisible: false and priceLineVisible: false
+  - Use chartRef.current.addSeries() to add series
+  - Use series.setData() to populate with data
