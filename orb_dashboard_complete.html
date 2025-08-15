@@ -1747,7 +1747,8 @@
 
         // Process raw candle data into standardized format
         function processCandleData(rawData, timeframe) {
-            return rawData.map(candle => ({
+            // First, process the raw data
+            const processedData = rawData.map(candle => ({
                 timestamp: candle.t,
                 time: candle.t / 1000, // Convert to seconds for TradingView
                 open: parseFloat(candle.o),
@@ -1760,8 +1761,83 @@
                 // Add calculated fields
                 hl2: (parseFloat(candle.h) + parseFloat(candle.l)) / 2,
                 hlc3: (parseFloat(candle.h) + parseFloat(candle.l) + parseFloat(candle.c)) / 3,
-                ohlc4: (parseFloat(candle.o) + parseFloat(candle.h) + parseFloat(candle.l) + parseFloat(candle.c)) / 4
+                ohlc4: (parseFloat(candle.o) + parseFloat(candle.h) + parseFloat(candle.l) + parseFloat(candle.c)) / 4,
+                // Add human-readable timestamp in UTC
+                hrt: new Date(candle.t).toISOString()
             }));
+
+            // Fill gaps in the data
+            return fillDataGaps(processedData, timeframe);
+        }
+
+        // Fill gaps in time series data
+        function fillDataGaps(data, timeframe) {
+            if (!data || data.length === 0) return data;
+            
+            // Get timeframe interval in milliseconds
+            const timeframeMs = getTimeframeMs(timeframe);
+            if (!timeframeMs) return data; // Unknown timeframe, return as is
+            
+            const filledData = [];
+            
+            for (let i = 0; i < data.length; i++) {
+                filledData.push(data[i]);
+                
+                // Check if there's a gap before the next bar
+                if (i < data.length - 1) {
+                    const currentTime = data[i].timestamp;
+                    const nextTime = data[i + 1].timestamp;
+                    const expectedNextTime = currentTime + timeframeMs;
+                    
+                    // Fill gaps if next bar is more than one timeframe away
+                    let gapTime = expectedNextTime;
+                    while (gapTime < nextTime) {
+                        const gapBar = createGapBar(data[i], gapTime, timeframe);
+                        filledData.push(gapBar);
+                        gapTime += timeframeMs;
+                    }
+                }
+            }
+            
+            return filledData;
+        }
+
+        // Create a gap-filling bar based on previous bar
+        function createGapBar(previousBar, timestamp, timeframe) {
+            return {
+                timestamp: timestamp,
+                time: timestamp / 1000,
+                open: previousBar.close,
+                high: previousBar.close,
+                low: previousBar.close,
+                close: previousBar.close,
+                volume: 0,
+                trades: 0,
+                timeframe: timeframe,
+                hl2: previousBar.close,
+                hlc3: previousBar.close,
+                ohlc4: previousBar.close,
+                hrt: new Date(timestamp).toISOString()
+            };
+        }
+
+        // Get timeframe interval in milliseconds
+        function getTimeframeMs(timeframe) {
+            const timeframeMap = {
+                '1m': 60 * 1000,
+                '3m': 3 * 60 * 1000,
+                '5m': 5 * 60 * 1000,
+                '15m': 15 * 60 * 1000,
+                '30m': 30 * 60 * 1000,
+                '1h': 60 * 60 * 1000,
+                '2h': 2 * 60 * 60 * 1000,
+                '4h': 4 * 60 * 60 * 1000,
+                '6h': 6 * 60 * 60 * 1000,
+                '8h': 8 * 60 * 60 * 1000,
+                '12h': 12 * 60 * 60 * 1000,
+                '1d': 24 * 60 * 60 * 1000
+            };
+            return timeframeMap[timeframe];
         }
 
         // Calculate ATR (Average True Range) for the chart data
