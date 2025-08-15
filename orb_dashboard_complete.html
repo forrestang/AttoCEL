@@ -630,12 +630,21 @@
                 
                 <!-- File Upload Section -->
                 <div id="file-data-source" class="hidden">
+                    <!-- Hidden file input for JSON files -->
+                    <input type="file" id="file-input" accept=".json" style="display: none;" onchange="handleFileUpload(event)">
+                    
                     <div class="file-upload" onclick="selectFile()">
                         <div>📁 Upload OHLC Data</div>
                         <div style="font-size: 12px; color: #8b949e; margin-top: 5px;">
-                            CSV, JSON supported<br>
-                            Chart and backtest data
+                            JSON files supported<br>
+                            Previously downloaded data
                         </div>
+                    </div>
+                    
+                    <!-- File upload status -->
+                    <div id="file-upload-status" style="margin-top: 10px; display: none;">
+                        <div style="font-size: 12px; color: #58a6ff;">📄 <span id="file-name"></span></div>
+                        <div style="font-size: 11px; color: #8b949e; margin-top: 2px;" id="file-details"></div>
                     </div>
                     
                     <div class="form-group" style="margin-top: 10px;">
@@ -1232,8 +1241,179 @@
         }
 
         function selectFile() {
-            // In a real implementation, this would open a native file picker
-            alert('In a real app, this would open a file picker. For now, we\'ll focus on the API integration.');
+            // Trigger the hidden file input
+            const fileInput = document.getElementById('file-input');
+            if (fileInput) {
+                fileInput.click();
+            }
+        }
+
+        // Handle file upload and processing
+        async function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // Show loading state
+            updateProgress(0, 'Reading file...');
+            showElement('progress-modal');
+
+            try {
+                // Validate file type
+                if (!file.name.toLowerCase().endsWith('.json')) {
+                    throw new Error('Please select a JSON file');
+                }
+
+                updateProgress(10, 'Parsing JSON data...');
+
+                // Read file content
+                const fileContent = await readFile(file);
+                let fileData;
+
+                try {
+                    fileData = JSON.parse(fileContent);
+                } catch (parseError) {
+                    throw new Error('Invalid JSON file format');
+                }
+
+                updateProgress(30, 'Validating data structure...');
+
+                // Validate required structure
+                validateUploadedData(fileData);
+
+                updateProgress(50, 'Processing chart data...');
+
+                // Store data in global variable (same structure as API download)
+                downloadedData = {
+                    chartData: fileData.chartData,
+                    backtestData: fileData.backtestData,
+                    metadata: fileData.metadata
+                };
+
+                updateProgress(70, 'Loading chart...');
+
+                // Update dashboard state
+                window.dashboardState.currentData = downloadedData;
+                window.dashboardState.chartData = fileData.chartData;
+
+                // Load chart data
+                if (window.loadChartData && typeof window.loadChartData === 'function') {
+                    loadChartData(fileData.chartData);
+                }
+
+                updateProgress(90, 'Updating UI...');
+
+                // Update UI with file information
+                updateFileUploadStatus(file.name, fileData.metadata);
+
+                // Update data status display
+                const metadata = fileData.metadata;
+                updateDataStatus(
+                    `✅ File loaded: ${file.name}<br>` +
+                    `📊 Chart: ${metadata.chartCandles || 'N/A'} × ${metadata.chartTimeframe || 'N/A'} | ` +
+                    `Backtest: ${metadata.backtestCandles || 'N/A'} × ${metadata.backtestTimeframe || 'N/A'}`,
+                    'success'
+                );
+
+                updateProgress(100, 'File loaded successfully!');
+                
+                // Hide progress modal after a short delay
+                setTimeout(() => {
+                    hideElement('progress-modal');
+                }, 1500);
+
+                console.log('✅ File uploaded and processed successfully');
+
+            } catch (error) {
+                console.error('❌ File upload failed:', error);
+                
+                updateDataStatus(`❌ File upload failed: ${error.message}`, 'error');
+                
+                // Hide progress modal and show error
+                hideElement('progress-modal');
+                setTimeout(() => {
+                    alert(`File upload failed: ${error.message}`);
+                }, 100);
+            }
+
+            // Reset file input
+            event.target.value = '';
+        }
+
+        // Helper function to read file content
+        function readFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.onerror = () => reject(new Error('Failed to read file'));
+                reader.readAsText(file);
+            });
+        }
+
+        // Validate uploaded data structure
+        function validateUploadedData(data) {
+            // Check main structure
+            if (!data || typeof data !== 'object') {
+                throw new Error('Invalid data structure');
+            }
+
+            // Check required top-level properties
+            if (!data.chartData) {
+                throw new Error('Missing chartData property');
+            }
+            if (!data.backtestData) {
+                throw new Error('Missing backtestData property');
+            }
+            if (!data.metadata) {
+                throw new Error('Missing metadata property');
+            }
+
+            // Validate chartData
+            if (!Array.isArray(data.chartData) || data.chartData.length === 0) {
+                throw new Error('chartData must be a non-empty array');
+            }
+
+            // Validate backtestData
+            if (!Array.isArray(data.backtestData) || data.backtestData.length === 0) {
+                throw new Error('backtestData must be a non-empty array');
+            }
+
+            // Check sample data structure for chartData
+            const chartSample = data.chartData[0];
+            const requiredChartFields = ['timestamp', 'time', 'open', 'high', 'low', 'close'];
+            for (const field of requiredChartFields) {
+                if (!(field in chartSample)) {
+                    throw new Error(`chartData missing required field: ${field}`);
+                }
+            }
+
+            // Check sample data structure for backtestData
+            const backtestSample = data.backtestData[0];
+            const requiredBacktestFields = ['timestamp', 'time', 'open', 'high', 'low', 'close'];
+            for (const field of requiredBacktestFields) {
+                if (!(field in backtestSample)) {
+                    throw new Error(`backtestData missing required field: ${field}`);
+                }
+            }
+
+            // Validate metadata
+            if (!data.metadata.asset || !data.metadata.startDate || !data.metadata.endDate) {
+                throw new Error('metadata missing required fields (asset, startDate, endDate)');
+            }
+
+            console.log('✅ Data structure validation passed');
+        }
+
+        // Update file upload status display
+        function updateFileUploadStatus(fileName, metadata) {
+            const statusDiv = document.getElementById('file-upload-status');
+            const fileNameSpan = document.getElementById('file-name');
+            const fileDetailsDiv = document.getElementById('file-details');
+
+            if (statusDiv && fileNameSpan && fileDetailsDiv) {
+                fileNameSpan.textContent = fileName;
+                fileDetailsDiv.textContent = `${metadata.asset} | ${metadata.startDate} to ${metadata.endDate}`;
+                statusDiv.style.display = 'block';
+            }
         }
 
         // Configuration getters for other parts
