@@ -1925,7 +1925,7 @@
             },
             grid: {
                 vertLines: { color: '#30363d' },
-                horzLines: { color: '#30363d' },
+                horzLines: { visible: false },
             },
             crosshair: {
                 mode: 0, // Normal crosshair mode
@@ -1997,7 +1997,7 @@
                     },
                     grid: {
                         vertLines: { color: '#333333' },
-                        horzLines: { color: '#333333' },
+                        horzLines: { visible: false },
                     },
                     crosshair: {
                         mode: 1,
@@ -2268,51 +2268,116 @@
         // Make loadChartData globally accessible
         window.loadChartData = loadChartData;
 
-        // Add trade markers to the chart
+        // Add trade lines to the chart (horizontal lines from entry to session end)
         function addTradeMarkers(trades) {
+            console.log('addTradeMarkers called with:', trades?.length || 0, 'trades');
+            
             if (!chart || !candlestickSeries || !trades || trades.length === 0) {
+                console.log('Missing requirements:', { chart: !!chart, candlestickSeries: !!candlestickSeries, trades: trades?.length || 0 });
                 return;
             }
 
             try {
-                // Clear existing markers
+                // Clear existing markers/lines
                 clearTradeMarkers();
 
-                // Prepare markers for v5.0.8
-                const markers = trades.map(trade => {
-                    const isLong = trade.side === 'LONG';
-                    const isEntry = trade.type === 'entry';
-                    
-                    let color = isLong ? '#56d364' : '#f85149';
-                    let shape = isEntry ? 'arrowUp' : 'arrowDown';
-                    let position = isEntry ? 'belowBar' : 'aboveBar';
-
-                    // Different shapes for entry vs exit
-                    if (!isEntry) {
-                        shape = isLong ? 'arrowDown' : 'arrowUp';
-                        position = isLong ? 'aboveBar' : 'belowBar';
-                        color = trade.pnl >= 0 ? '#56d364' : '#f85149';
+                // Group trades by their entry time to get entry/target/stop together
+                const tradeGroups = new Map();
+                trades.forEach(trade => {
+                    console.log('Processing trade:', trade);
+                    const key = trade.time;
+                    if (!tradeGroups.has(key)) {
+                        tradeGroups.set(key, { entry: null, target: null, stop: null, sessionEnd: null });
                     }
-
-                    return {
-                        time: trade.time,
-                        position: position,
-                        color: color,
-                        shape: shape,
-                        text: `${trade.side} ${trade.type ? trade.type.toUpperCase() : ''}\n${trade.price}\n${trade.pnlR ? `${trade.pnlR.toFixed(2)}R` : ''}`,
-                        size: 1,
-                    };
+                    const group = tradeGroups.get(key);
+                    group[trade.type] = trade;
                 });
 
-                // Add markers using v5.0.8 API
-                candlestickSeries.setMarkers(markers);
-                tradeMarkers = markers;
+                console.log('Trade groups created:', tradeGroups.size);
 
-                console.log(`Added ${markers.length} trade markers to chart`);
+                // Create horizontal lines for each trade group
+                tradeGroups.forEach((group, entryTime) => {
+                    console.log('Processing group for time:', entryTime, 'Group:', group);
+                    if (!group.entry || !group.target || !group.stop) {
+                        console.log('Missing group data:', { entry: !!group.entry, target: !!group.target, stop: !!group.stop });
+                        return;
+                    }
+
+                    // Find session end time for this trade
+                    const sessionEnd = findSessionEndTime(entryTime);
+                    console.log('Session end time:', sessionEnd);
+                    if (!sessionEnd) return;
+
+                    // Create entry line (blue)
+                    const entryLineSeries = chart.addSeries(LineSeries, {
+                        color: '#2563eb',
+                        lineWidth: 1,
+                        lineStyle: 1, // Dotted line
+                        priceLineVisible: false,
+                        lastValueVisible: false,
+                        crosshairMarkerVisible: false,
+                    });
+                    const entryLineData = [
+                        { time: entryTime, value: group.entry.price },
+                        { time: sessionEnd, value: group.entry.price }
+                    ];
+                    entryLineSeries.setData(entryLineData);
+                    tradeMarkers.push(entryLineSeries);
+
+                    // Create target line (green)
+                    const targetLineSeries = chart.addSeries(LineSeries, {
+                        color: '#16a34a',
+                        lineWidth: 1,
+                        lineStyle: 1, // Dotted line
+                        priceLineVisible: false,
+                        lastValueVisible: false,
+                        crosshairMarkerVisible: false,
+                    });
+                    const targetLineData = [
+                        { time: entryTime, value: group.target.price },
+                        { time: sessionEnd, value: group.target.price }
+                    ];
+                    targetLineSeries.setData(targetLineData);
+                    tradeMarkers.push(targetLineSeries);
+
+                    // Create stop line (red)
+                    const stopLineSeries = chart.addSeries(LineSeries, {
+                        color: '#dc2626',
+                        lineWidth: 1,
+                        lineStyle: 1, // Dotted line
+                        priceLineVisible: false,
+                        lastValueVisible: false,
+                        crosshairMarkerVisible: false,
+                    });
+                    const stopLineData = [
+                        { time: entryTime, value: group.stop.price },
+                        { time: sessionEnd, value: group.stop.price }
+                    ];
+                    stopLineSeries.setData(stopLineData);
+                    tradeMarkers.push(stopLineSeries);
+                });
+
+                console.log(`Added ${tradeMarkers.length} trade lines to chart`);
 
             } catch (error) {
-                console.error('Failed to add trade markers:', error);
+                console.error('Failed to add trade lines:', error);
             }
+        }
+
+        // Helper function to find session end time for a given entry time
+        function findSessionEndTime(entryTime) {
+            // Look for the session that contains this entry time
+            if (window.currentBacktestResults && window.currentBacktestResults.sessions) {
+                for (const session of window.currentBacktestResults.sessions) {
+                    const sessionStart = session.startTime / 1000;
+                    const sessionEnd = session.endTime / 1000;
+                    if (entryTime >= sessionStart && entryTime <= sessionEnd) {
+                        return sessionEnd;
+                    }
+                }
+            }
+            // Fallback: add 4 hours to entry time
+            return entryTime + (4 * 60 * 60);
         }
 
         // Add session boxes to show opening ranges
@@ -2327,7 +2392,10 @@
 
                 sessions.forEach((session, index) => {
                     if (session.openingRange) {
-                        // Add opening range high line using correct v5.0.8 API
+                        // Horizontal lines removed per user request
+                        // Now using arrow markers instead of infinite-width lines
+                        // Previous line creation code commented out
+                        /*
                         const highLine = candlestickSeries.createPriceLine({
                             price: session.openingRange.high,
                             color: '#58a6ff',
@@ -2337,7 +2405,6 @@
                             title: `OR High S${index + 1}`,
                         });
 
-                        // Add opening range low line using correct v5.0.8 API
                         const lowLine = candlestickSeries.createPriceLine({
                             price: session.openingRange.low,
                             color: '#58a6ff',
@@ -2348,21 +2415,39 @@
                         });
 
                         sessionBoxes.push(highLine, lowLine);
+                        */
                     }
                 });
 
-                console.log(`Added ${sessionBoxes.length / 2} session opening ranges to chart`);
+                console.log(`Session opening ranges processed (horizontal lines disabled)`);
 
             } catch (error) {
                 console.error('Failed to add session boxes:', error);
             }
         }
 
-        // Clear trade markers
+        // Clear trade markers and line series
         function clearTradeMarkers() {
-            if (candlestickSeries && tradeMarkers.length > 0) {
-                candlestickSeries.setMarkers([]);
+            if (tradeMarkers.length > 0) {
+                tradeMarkers.forEach(item => {
+                    try {
+                        // This is a line series, remove it from chart
+                        if (chart && typeof chart.removeSeries === 'function') {
+                            chart.removeSeries(item);
+                        }
+                    } catch (error) {
+                        console.warn('Error removing series:', error);
+                    }
+                });
                 tradeMarkers = [];
+            }
+            // Also clear any markers on candlestick series if they exist
+            if (candlestickSeries && typeof candlestickSeries.setMarkers === 'function') {
+                try {
+                    candlestickSeries.setMarkers([]);
+                } catch (error) {
+                    console.warn('Error clearing markers:', error);
+                }
             }
         }
 
@@ -2384,27 +2469,39 @@
             }
 
             try {
+                // Store results globally for line drawing
+                window.currentBacktestResults = backtestResults;
                 // Create trade markers from backtest trades
                 if (backtestResults.trades && backtestResults.trades.length > 0) {
                     const chartMarkers = backtestResults.trades.flatMap(trade => {
                         const markers = [];
+                        const entryTimeSeconds = trade.entryTime / 1000; // Convert to seconds
                         
-                        // Entry marker
+                        // Entry marker (blue left arrow)
                         markers.push({
-                            time: trade.entryTime / 1000, // Convert to seconds
+                            time: entryTimeSeconds,
                             side: trade.side,
                             type: 'entry',
                             price: trade.entryPrice,
                             pnlR: null
                         });
                         
-                        // Exit marker
+                        // Target marker (green left arrow)
                         markers.push({
-                            time: trade.exitTime / 1000, // Convert to seconds
+                            time: entryTimeSeconds,
                             side: trade.side,
-                            type: 'exit',
-                            price: trade.exitPrice,
-                            pnlR: trade.pnlR
+                            type: 'target',
+                            price: trade.targetPrice,
+                            pnlR: null
+                        });
+                        
+                        // Stop marker (red left arrow)
+                        markers.push({
+                            time: entryTimeSeconds,
+                            side: trade.side,
+                            type: 'stop',
+                            price: trade.stopPrice,
+                            pnlR: null
                         });
                         
                         return markers;
