@@ -530,6 +530,25 @@
             width: auto;
         }
         
+        /* Trade log table checkboxes */
+        #trade-log-table input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            margin: 0;
+            cursor: pointer;
+            accent-color: #58a6ff;
+        }
+        
+        #trade-log-table th:first-child {
+            width: 40px;
+            text-align: center;
+        }
+        
+        #trade-log-table td:first-child {
+            text-align: center;
+            padding: 8px 4px;
+        }
+        
         /* Hidden Elements */
         .hidden {
             display: none !important;
@@ -1087,6 +1106,7 @@
                             <table id="trade-log-table">
                                 <thead>
                                     <tr>
+                                        <th><input type="checkbox" id="master-trade-checkbox" data-label="master-checkbox" checked onchange="toggleAllTrades(this.checked)"></th>
                                         <th>Session</th>
                                         <th>Trade#</th>
                                         <th>Side</th>
@@ -1098,7 +1118,7 @@
                                 </thead>
                                 <tbody id="trade-log-tbody">
                                     <tr>
-                                        <td colspan="7" style="text-align: center; color: #8b949e; padding: 40px;">
+                                        <td colspan="8" style="text-align: center; color: #8b949e; padding: 40px;">
                                             No trades to display. Run a backtest to see results.
                                         </td>
                                     </tr>
@@ -1223,6 +1243,253 @@
             },
             chart: null
         };
+
+        // Global variable for trade checkbox states
+        window.tradeCheckboxStates = {};
+
+        // Trade checkbox management functions
+        function toggleTrade(tradeId, isChecked) {
+            window.tradeCheckboxStates[tradeId] = isChecked;
+            
+            // Update master checkbox state
+            updateMasterCheckboxState();
+            
+            // Refresh all displays with new filtered data
+            refreshDisplaysWithFilteredTrades();
+        }
+
+        function toggleAllTrades(checkAll) {
+            // Get all current trade checkboxes
+            const tradeCheckboxes = document.querySelectorAll('[data-trade-id]');
+            
+            tradeCheckboxes.forEach(checkbox => {
+                const tradeId = checkbox.getAttribute('data-trade-id');
+                checkbox.checked = checkAll;
+                window.tradeCheckboxStates[tradeId] = checkAll;
+            });
+            
+            // Refresh all displays with new filtered data
+            refreshDisplaysWithFilteredTrades();
+        }
+
+        function updateMasterCheckboxState() {
+            const masterCheckbox = document.getElementById('master-trade-checkbox');
+            if (!masterCheckbox) return;
+            
+            const tradeCheckboxes = document.querySelectorAll('[data-trade-id]');
+            const checkedBoxes = document.querySelectorAll('[data-trade-id]:checked');
+            
+            if (checkedBoxes.length === 0) {
+                masterCheckbox.checked = false;
+                masterCheckbox.indeterminate = false;
+            } else if (checkedBoxes.length === tradeCheckboxes.length) {
+                masterCheckbox.checked = true;
+                masterCheckbox.indeterminate = false;
+            } else {
+                masterCheckbox.checked = false;
+                masterCheckbox.indeterminate = true;
+            }
+        }
+
+        function getFilteredTrades() {
+            if (!window.dashboardState.backtestResults || !window.dashboardState.backtestResults.trades) {
+                return [];
+            }
+            
+            return window.dashboardState.backtestResults.trades.filter(trade => {
+                const tradeId = `${trade.sessionId}-T${trade.tradeNumber}`;
+                return window.tradeCheckboxStates[tradeId] !== false;
+            });
+        }
+
+        function refreshDisplaysWithFilteredTrades() {
+            if (!window.dashboardState.backtestResults) return;
+            
+            const filteredTrades = getFilteredTrades();
+            
+            // Recalculate session data based on filtered trades
+            const filteredSessions = recalculateSessionsFromTrades(filteredTrades);
+            
+            // Create filtered results object
+            const filteredResults = {
+                ...window.dashboardState.backtestResults,
+                trades: filteredTrades,
+                sessions: filteredSessions
+            };
+            
+            // Recalculate statistics with filtered trades
+            const filteredStats = calculateFilteredStatistics(filteredTrades);
+            filteredResults.stats = filteredStats;
+            
+            // Update displays
+            updateStatsCards(filteredStats);
+            updatePnLCharts(filteredResults);
+            updateSessionSummary(filteredSessions);
+            
+            // Update chart markers to show only checked trades
+            refreshChartMarkers(filteredTrades);
+        }
+
+        function refreshChartMarkers(filteredTrades) {
+            // Only update chart markers if chart exists and is initialized
+            if (!chart || !candlestickSeries || !window.dashboardChart) return;
+            
+            try {
+                // Use the existing addTradeMarkers function with filtered trades
+                if (window.dashboardChart.addTradeMarkers) {
+                    window.dashboardChart.addTradeMarkers(filteredTrades);
+                }
+            } catch (error) {
+                console.error('Failed to refresh chart markers:', error);
+            }
+        }
+
+        function recalculateSessionsFromTrades(filteredTrades) {
+            if (!filteredTrades || filteredTrades.length === 0) {
+                return [];
+            }
+
+            // Group trades by session
+            const sessionMap = {};
+            filteredTrades.forEach(trade => {
+                if (!sessionMap[trade.sessionId]) {
+                    // Find original session data
+                    const originalSession = window.dashboardState.backtestResults.sessions.find(s => s.id === trade.sessionId);
+                    if (originalSession) {
+                        sessionMap[trade.sessionId] = {
+                            ...originalSession,
+                            result: {
+                                ...originalSession.result,
+                                trades: [],
+                                pnl: 0,
+                                tradeCount: 0
+                            }
+                        };
+                    }
+                }
+                
+                if (sessionMap[trade.sessionId]) {
+                    sessionMap[trade.sessionId].result.trades.push(trade);
+                }
+            });
+
+            // Recalculate session P&L and other metrics
+            return Object.values(sessionMap).map(session => {
+                const sessionTrades = session.result.trades;
+                const sessionPnL = sessionTrades.reduce((sum, trade) => sum + (trade.pnlR || 0), 0);
+                
+                return {
+                    ...session,
+                    result: {
+                        ...session.result,
+                        pnl: sessionPnL,
+                        tradeCount: sessionTrades.length,
+                        success: sessionPnL > 0
+                    }
+                };
+            });
+        }
+
+        function calculateFilteredStatistics(filteredTrades) {
+            if (!filteredTrades || filteredTrades.length === 0) {
+                return {
+                    validSessions: 0,
+                    winningSessions: 0,
+                    losingSessions: 0,
+                    sessionWinRate: 0,
+                    totalTrades: 0,
+                    winningTrades: 0,
+                    losingTrades: 0,
+                    tradeWinRate: 0,
+                    totalReturnR: 0,
+                    averageSessionR: 0,
+                    maxDrawdown: 0,
+                    intraDrawdown: 0,
+                    profitFactor: 0,
+                    averageTradesPerSession: 0
+                };
+            }
+
+            // Group trades by session
+            const sessionMap = {};
+            filteredTrades.forEach(trade => {
+                if (!sessionMap[trade.sessionId]) {
+                    sessionMap[trade.sessionId] = [];
+                }
+                sessionMap[trade.sessionId].push(trade);
+            });
+
+            // Calculate session-level P&L
+            const sessionPnLs = Object.values(sessionMap).map(sessionTrades =>
+                sessionTrades.reduce((sum, trade) => sum + (trade.pnlR || 0), 0)
+            );
+            
+            const validSessions = sessionPnLs.filter(pnl => sessionPnLs.length > 0);
+            const winningSessions = sessionPnLs.filter(pnl => pnl > 0);
+            const losingSessions = sessionPnLs.filter(pnl => pnl < 0);
+
+            // Trade-level stats
+            const winningTrades = filteredTrades.filter(t => t.pnlR > 0);
+            const losingTrades = filteredTrades.filter(t => t.pnlR < 0);
+
+            // Calculate max drawdown from session P&Ls
+            let maxDrawdown = 0;
+            let peak = 0;
+            let runningTotal = 0;
+            for (const pnl of sessionPnLs) {
+                runningTotal += pnl;
+                peak = Math.max(peak, runningTotal);
+                const drawdown = peak - runningTotal;
+                maxDrawdown = Math.max(maxDrawdown, drawdown);
+            }
+
+            // Calculate intra-session drawdown
+            let maxIntraDrawdown = 0;
+            Object.values(sessionMap).forEach(sessionTrades => {
+                let currentDrawdown = 0;
+                let worstDrawdown = 0;
+                sessionTrades.forEach(trade => {
+                    if (trade.pnlR < 0) {
+                        currentDrawdown += Math.abs(trade.pnlR);
+                        worstDrawdown = Math.max(worstDrawdown, currentDrawdown);
+                    } else {
+                        currentDrawdown = 0;
+                    }
+                });
+                maxIntraDrawdown = Math.max(maxIntraDrawdown, worstDrawdown);
+            });
+
+            // Calculate profit factor
+            const grossProfit = winningTrades.reduce((sum, t) => sum + t.pnlR, 0);
+            const grossLoss = Math.abs(losingTrades.reduce((sum, t) => sum + t.pnlR, 0));
+            const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : (grossProfit > 0 ? 999 : 0);
+
+            return {
+                // Session stats
+                validSessions: validSessions.length,
+                winningSessions: winningSessions.length,
+                losingSessions: losingSessions.length,
+                sessionWinRate: validSessions.length > 0 ? (winningSessions.length / validSessions.length) * 100 : 0,
+                
+                // Trade stats
+                totalTrades: filteredTrades.length,
+                winningTrades: winningTrades.length,
+                losingTrades: losingTrades.length,
+                tradeWinRate: filteredTrades.length > 0 ? (winningTrades.length / filteredTrades.length) * 100 : 0,
+                
+                // P&L stats
+                totalReturnR: sessionPnLs.reduce((sum, pnl) => sum + pnl, 0),
+                averageSessionR: validSessions.length > 0 ? sessionPnLs.reduce((sum, pnl) => sum + pnl, 0) / validSessions.length : 0,
+                
+                // Risk metrics
+                maxDrawdown: maxDrawdown,
+                intraDrawdown: maxIntraDrawdown,
+                profitFactor: profitFactor,
+                
+                // Trade distribution
+                averageTradesPerSession: validSessions.length > 0 ? filteredTrades.length / validSessions.length : 0
+            };
+        }
 
         // PART 1: UTILITY FUNCTIONS
         function showElement(elementId) {
@@ -2906,6 +3173,9 @@
                         sessionChart.series.applyOptions({
                             color: finalPnL >= 0 ? '#56d364' : '#f85149'
                         });
+                    } else {
+                        // Clear chart when no data
+                        sessionChart.series.setData([]);
                     }
                 }
                 
@@ -2933,6 +3203,9 @@
                         tradeChart.series.applyOptions({
                             color: finalPnL >= 0 ? '#56d364' : '#f85149'
                         });
+                    } else {
+                        // Clear chart when no data
+                        tradeChart.series.setData([]);
                     }
                 }
             } catch (error) {
@@ -3835,6 +4108,16 @@
         // Update results display
         async function updateResultsDisplay(results) {
             try {
+                // Initialize checkbox states for new results (all checked by default)
+                if (results.trades) {
+                    results.trades.forEach(trade => {
+                        const tradeId = `${trade.sessionId}-T${trade.tradeNumber}`;
+                        if (window.tradeCheckboxStates[tradeId] === undefined) {
+                            window.tradeCheckboxStates[tradeId] = true;
+                        }
+                    });
+                }
+
                 // Update statistics cards
                 updateStatsCards(results.stats);
                 
@@ -3889,7 +4172,7 @@
             if (trades.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="7" style="text-align: center; color: #8b949e; padding: 40px;">
+                        <td colspan="8" style="text-align: center; color: #8b949e; padding: 40px;">
                             No trades to display.
                         </td>
                     </tr>
@@ -3897,13 +4180,16 @@
                 return;
             }
 
-            tbody.innerHTML = trades.map(trade => {
+            tbody.innerHTML = trades.map((trade, index) => {
                 const duration = formatDuration(trade.duration);
                 const pnlClass = trade.pnlR > 0 ? 'positive' : 'negative';
                 const sideClass = trade.side === 'LONG' ? 'trade-long' : 'trade-short';
+                const tradeId = `${trade.sessionId}-T${trade.tradeNumber}`;
+                const isChecked = window.tradeCheckboxStates ? window.tradeCheckboxStates[tradeId] !== false : true;
 
                 return `
                     <tr>
+                        <td><input type="checkbox" data-label="trade-checkbox-${index}" data-trade-id="${tradeId}" ${isChecked ? 'checked' : ''} onchange="toggleTrade('${tradeId}', this.checked)"></td>
                         <td>${trade.sessionId}</td>
                         <td>${trade.tradeNumber}</td>
                         <td class="${sideClass}">${trade.side}</td>
@@ -3917,6 +4203,9 @@
 
             // Add filter chips
             updateTradeFilterChips();
+            
+            // Update master checkbox state after rendering
+            setTimeout(() => updateMasterCheckboxState(), 0);
         }
 
         // Update session summary table
@@ -4068,12 +4357,20 @@
             }
 
             try {
+                // Get only checked trades for export
+                const filteredTrades = getFilteredTrades();
+                
+                if (filteredTrades.length === 0) {
+                    alert('No trades selected for export. Please check at least one trade.');
+                    return;
+                }
+
                 // Prepare CSV data
                 const headers = ['Session ID', 'Trade Number', 'Side', 'Entry Price', 'Exit Price', 'Stop Price', 'Target Price', 'Entry Time', 'Exit Time', 'Exit Reason', 'R W/L', 'Duration (minutes)', 'Position Size'];
                 
                 const csvRows = [headers.join(',')];
                 
-                backtestResults.trades.forEach(trade => {
+                filteredTrades.forEach(trade => {
                     const row = [
                         trade.sessionId,
                         trade.tradeNumber,
@@ -4105,14 +4402,17 @@
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
 
-                // Also export summary statistics
+                // Also export summary statistics using filtered data
+                const filteredStats = calculateFilteredStatistics(filteredTrades);
                 const summaryData = {
                     backtestConfig: backtestResults.config,
-                    summaryStats: backtestResults.stats,
+                    summaryStats: filteredStats,
                     metadata: {
                         exportTime: new Date().toISOString(),
-                        totalTrades: backtestResults.trades.length,
-                        totalSessions: backtestResults.sessions.length
+                        totalTrades: filteredTrades.length,
+                        totalTradesOriginal: backtestResults.trades.length,
+                        totalSessions: backtestResults.sessions.length,
+                        note: 'Statistics reflect only checked trades'
                     }
                 };
 
