@@ -7,7 +7,11 @@
       "Bash(git init:*)",
       "Bash(git add:*)",
       "Bash(git push:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "WebSearch",
+      "Bash(git restore:*)",
+      "Bash(start C:UserslawfpDesktopSoftwareAttoCELorb_dashboard_complete.html)",
+      "Bash(start \"C:\\Users\\lawfp\\Desktop\\Software\\AttoCEL\\orb_dashboard_complete.html\")"
     ],
     "deny": [],
     "ask": [],

@@ -1867,14 +1867,16 @@
                 if (i < data.length - 1) {
                     const currentTime = data[i].timestamp;
                     const nextTime = data[i + 1].timestamp;
-                    const expectedNextTime = currentTime + timeframeMs;
+                    
+                    // Calculate the next expected timestamp aligned to timeframe
+                    const expectedNextTime = getNextAlignedTimestamp(currentTime, timeframeMs);
                     
                     // Fill gaps if next bar is more than one timeframe away
                     let gapTime = expectedNextTime;
                     while (gapTime < nextTime) {
                         const gapBar = createGapBar(data[i], gapTime, timeframe);
                         filledData.push(gapBar);
-                        gapTime += timeframeMs;
+                        gapTime = getNextAlignedTimestamp(gapTime, timeframeMs);
                     }
                 }
             }
@@ -1918,6 +1920,12 @@
                 '1d': 24 * 60 * 60 * 1000
             };
             return timeframeMap[timeframe];
+        }
+
+        // Get next timestamp aligned to timeframe interval
+        function getNextAlignedTimestamp(timestamp, timeframeMs) {
+            // Round up to the next timeframe boundary
+            return Math.ceil(timestamp / timeframeMs) * timeframeMs;
         }
 
 
@@ -2852,14 +2860,14 @@
 
                     session.openingRange = openingRange;
 
-                    // Get relevant backtest data for this session
-                    const sessionBacktestData = backtestData.filter(candle =>
+                    // Get relevant chart data for this session
+                    const sessionChartData = chartData.filter(candle =>
                         candle.timestamp >= session.startTime &&
                         candle.timestamp <= session.endTime
                     );
 
                     // Execute trades for this session
-                    const sessionTrades = await this.executeSessionTrades(session, sessionBacktestData, chartData);
+                    const sessionTrades = await this.executeSessionTrades(session, sessionChartData, chartData);
                     
                     // Calculate session result
                     const sessionPnL = sessionTrades.reduce((sum, trade) => sum + (trade.pnlR || 0), 0);
@@ -2931,7 +2939,7 @@
             }
 
             // Execute trades for a session using martingale strategy
-            async executeSessionTrades(session, backtestData, chartData) {
+            async executeSessionTrades(session, sessionData, chartData) {
                 const trades = [];
                 let currentTradeNum = 1;
                 let sessionActive = true;
@@ -2942,7 +2950,7 @@
                 while (sessionActive && !targetReached && currentTradeNum <= 10) {
                     const trade = await this.executeSingleTrade(
                         session, 
-                        backtestData, 
+                        sessionData, 
                         currentTradeNum,
                         trades,
                         chartData
@@ -2974,7 +2982,7 @@
             }
 
             // Execute a single trade in the martingale sequence
-            async executeSingleTrade(session, backtestData, tradeNum, previousTrades, chartData) {
+            async executeSingleTrade(session, sessionData, tradeNum, previousTrades, chartData) {
                 try {
                     // Validate required data
                     if (!session || !session.openingRange) {
@@ -2982,8 +2990,8 @@
                         return null;
                     }
                     
-                    if (!backtestData || backtestData.length === 0) {
-                        console.error('No backtest data available');
+                    if (!sessionData || sessionData.length === 0) {
+                        console.error('No session data available');
                         return null;
                     }
                     
@@ -2999,7 +3007,7 @@
 
                     if (tradeNum === 1) {
                         // First trade: wait for breakout in either direction
-                        const breakout = this.findFirstBreakout(session, backtestData);
+                        const breakout = this.findFirstBreakout(session, sessionData);
                         if (!breakout) return null;
 
                         direction = breakout.direction;
@@ -3055,7 +3063,7 @@
                     const positionSize = this.config.initialPositionSize * positionMultiplier;
 
                     // Find entry time
-                    const entryTime = this.findEntryTime(entryPrice, direction, backtestData, session);
+                    const entryTime = this.findEntryTime(entryPrice, direction, sessionData, session);
                     if (!entryTime) return null;
 
                     // Simulate trade execution
@@ -3064,7 +3072,7 @@
                         stopPrice,
                         targetPrice,
                         direction,
-                        backtestData,
+                        chartData,
                         session,
                         entryTime,
                         chartData
@@ -3109,9 +3117,9 @@
             }
 
             // Find first breakout of opening range
-            findFirstBreakout(session, backtestData) {
+            findFirstBreakout(session, sessionData) {
                 // Look for data after opening range ends
-                const postORData = backtestData.filter(candle => 
+                const postORData = sessionData.filter(candle => 
                     candle.timestamp > session.openingRange.endTime
                 );
 
@@ -3279,8 +3287,8 @@
             }
 
             // Find entry time for a trade
-            findEntryTime(entryPrice, direction, backtestData, session) {
-                for (const candle of backtestData) {
+            findEntryTime(entryPrice, direction, sessionData, session) {
+                for (const candle of sessionData) {
                     if (candle.timestamp <= session.openingRange.endTime) continue;
                     if (candle.timestamp > session.endTime) break;
 
@@ -3296,8 +3304,8 @@
             }
 
             // Simulate trade execution and find exit
-            simulateTradeExecution(entryPrice, stopPrice, targetPrice, direction, backtestData, session, entryTime, chartData) {
-                for (const candle of backtestData) {
+            simulateTradeExecution(entryPrice, stopPrice, targetPrice, direction, executionData, session, entryTime, chartData) {
+                for (const candle of executionData) {
                     if (candle.timestamp <= entryTime) continue;
                     if (candle.timestamp > session.endTime) {
                         // Session ended, close at session end
