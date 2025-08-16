@@ -1001,7 +1001,7 @@
                         </div>
                         <div class="stat-card">
                             <div class="stat-value neutral">--</div>
-                            <div class="stat-label">Total Sessions</div>
+                            <div class="stat-label">Valid Sessions</div>
                         </div>
                     </div>
                     
@@ -1028,7 +1028,7 @@
                                         <th>Side</th>
                                         <th>Entry</th>
                                         <th>Exit</th>
-                                        <th>R Multiple</th>
+                                        <th>R W/L</th>
                                         <th>Duration</th>
                                     </tr>
                                 </thead>
@@ -3071,7 +3071,7 @@
                     const pnlAmount = direction === 'LONG' ? 
                         (exit.price - entryPrice) : 
                         (entryPrice - exit.price);
-                    const pnlR = riskAmount > 0 ? pnlAmount / riskAmount : 0;
+                    const pnlR = riskAmount > 0 ? (pnlAmount / riskAmount) * positionMultiplier : 0;
 
                     // Create trade record
                     const trade = {
@@ -3582,7 +3582,7 @@
                 { selector: '.stat-card:nth-child(3) .stat-value', value: stats.averageTradesPerSession?.toFixed(1) || '0', class: 'neutral' },
                 { selector: '.stat-card:nth-child(4) .stat-value', value: `${stats.maxDrawdown?.toFixed(1) || 0}R`, class: 'negative' },
                 { selector: '.stat-card:nth-child(5) .stat-value', value: stats.profitFactor?.toFixed(2) || '0', class: stats.profitFactor > 1 ? 'positive' : 'negative' },
-                { selector: '.stat-card:nth-child(6) .stat-value', value: stats.totalSessions || '0', class: 'neutral' }
+                { selector: '.stat-card:nth-child(6) .stat-value', value: stats.validSessions || '0', class: 'neutral' }
             ];
 
             updates.forEach(update => {
@@ -3782,7 +3782,7 @@
 
             try {
                 // Prepare CSV data
-                const headers = ['Session ID', 'Trade Number', 'Side', 'Entry Price', 'Exit Price', 'Stop Price', 'Target Price', 'Entry Time', 'Exit Time', 'Exit Reason', 'P&L (R)', 'Duration (minutes)', 'Position Size'];
+                const headers = ['Session ID', 'Trade Number', 'Side', 'Entry Price', 'Exit Price', 'Stop Price', 'Target Price', 'Entry Time', 'Exit Time', 'Exit Reason', 'R W/L', 'Duration (minutes)', 'Position Size'];
                 
                 const csvRows = [headers.join(',')];
                 
