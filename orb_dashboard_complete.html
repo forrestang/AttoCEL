@@ -122,6 +122,55 @@
             border-color: #58a6ff;
             box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.1);
         }
+
+        /* Tooltip Styles */
+        .label-with-tooltip {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .tooltip-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 16px;
+            height: 16px;
+            background: #30363d;
+            color: #8b949e;
+            border-radius: 50%;
+            font-size: 11px;
+            cursor: help;
+            position: relative;
+        }
+        
+        .tooltip-icon:hover {
+            background: #58a6ff;
+            color: white;
+        }
+        
+        .tooltip-content {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1c2128;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 8px 10px;
+            font-size: 12px;
+            color: #c9d1d9;
+            white-space: nowrap;
+            z-index: 1000;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+        
+        .tooltip-icon:hover .tooltip-content {
+            opacity: 1;
+        }
         
         .form-row {
             display: grid;
@@ -560,14 +609,24 @@
                 <!-- HyperLiquid API Section -->
                 <div id="api-data-source">
                     <div class="form-group">
-                        <label>Asset Symbol</label>
+                        <div class="label-with-tooltip">
+                            <label>Asset Symbol</label>
+                            <span class="tooltip-icon">?
+                                <div class="tooltip-content">Select from available trading symbols</div>
+                            </span>
+                        </div>
                         <select id="asset-select">
                             <option value="">Loading symbols...</option>
                         </select>
                     </div>
                     
                     <div class="form-group">
-                        <label>Chart Timeframe (Display)</label>
+                        <div class="label-with-tooltip">
+                            <label>Chart Timeframe (Display)</label>
+                            <span class="tooltip-icon">?
+                                <div class="tooltip-content">Default: 15m (timeframe for chart display)</div>
+                            </span>
+                        </div>
                         <select id="chart-timeframe-select">
                             <option value="5m">5 Minutes</option>
                             <option value="15m">15 Minutes</option>
@@ -579,7 +638,12 @@
                     </div>
                     
                     <div class="form-group">
-                        <label>Backtest Timeframe (Execution)</label>
+                        <div class="label-with-tooltip">
+                            <label>Backtest Timeframe (Execution)</label>
+                            <span class="tooltip-icon">?
+                                <div class="tooltip-content">Default: 5m (timeframe for trade execution)</div>
+                            </span>
+                        </div>
                         <select id="backtest-timeframe-select">
                             <option value="1m">1 Minute</option>
                             <option value="3m">3 Minutes</option>
@@ -590,11 +654,21 @@
                     
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Start Date</label>
+                            <div class="label-with-tooltip">
+                                <label>Start Date</label>
+                                <span class="tooltip-icon">?
+                                    <div class="tooltip-content">Select data start date (YYYY-MM-DD)</div>
+                                </span>
+                            </div>
                             <input type="date" id="start-date">
                         </div>
                         <div class="form-group">
-                            <label>End Date</label>
+                            <div class="label-with-tooltip">
+                                <label>End Date</label>
+                                <span class="tooltip-icon">?
+                                    <div class="tooltip-content">Select data end date (YYYY-MM-DD)</div>
+                                </span>
+                            </div>
                             <input type="date" id="end-date">
                         </div>
                     </div>
@@ -648,14 +722,24 @@
                     </div>
                     
                     <div class="form-group" style="margin-top: 10px;">
-                        <label>Asset Symbol</label>
+                        <div class="label-with-tooltip">
+                            <label>Asset Symbol</label>
+                            <span class="tooltip-icon">?
+                                <div class="tooltip-content">Default: BTCUSD (manual symbol entry)</div>
+                            </span>
+                        </div>
                         <input type="text" id="manual-asset" placeholder="BTC, ETH, SOL..." value="BTCUSD">
                     </div>
                 </div>
                 
                 <!-- Universal Settings -->
                 <div class="form-group" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #30363d;">
-                    <label>Tick Size</label>
+                    <div class="label-with-tooltip">
+                        <label>Tick Size</label>
+                        <span class="tooltip-icon">?
+                            <div class="tooltip-content">Default: 0.01 (minimum price movement)</div>
+                        </span>
+                    </div>
                     <input type="number" placeholder="0.01" value="0.01" step="0.001" id="tick-size">
                 </div>
                 
@@ -669,15 +753,30 @@
             <div class="section">
                 <div class="section-title">⏰ Session Config</div>
                 <div class="form-group">
-                    <label>Session Length (minutes)</label>
+                    <div class="label-with-tooltip">
+                        <label>Session Length (minutes)</label>
+                        <span class="tooltip-icon">?
+                            <div class="tooltip-content">Default: 240 (4 hours)</div>
+                        </span>
+                    </div>
                     <input type="number" id="session-length" value="240" placeholder="240" min="60" step="60">
                 </div>
                 <div class="form-group">
-                    <label>Opening Range (minutes)</label>
+                    <div class="label-with-tooltip">
+                        <label>Opening Range (minutes)</label>
+                        <span class="tooltip-icon">?
+                            <div class="tooltip-content">Default: 10 (first 10 minutes of session)</div>
+                        </span>
+                    </div>
                     <input type="number" id="opening-range" value="10" placeholder="10" min="1" step="1">
                 </div>
                 <div class="form-group">
-                    <label>Session Start Times (UTC)</label>
+                    <div class="label-with-tooltip">
+                        <label>Session Start Times (UTC)</label>
+                        <span class="tooltip-icon">?
+                            <div class="tooltip-content">Default: 00:00, 04:00, 08:00, 12:00, 16:00, 20:00</div>
+                        </span>
+                    </div>
                     <input type="text" id="session-starts" value="00:00, 04:00, 08:00, 12:00, 16:00, 20:00" placeholder="00:00, 04:00...">
                 </div>
             </div>
@@ -695,7 +794,12 @@
                 <!-- Bar-Based Parameters -->
                 <div id="bar-params">
                     <div class="form-group">
-                        <label>Tick Buffer</label>
+                        <div class="label-with-tooltip">
+                            <label>Tick Buffer</label>
+                            <span class="tooltip-icon">?
+                                <div class="tooltip-content">Default: 1 (ticks away from OR boundaries)</div>
+                            </span>
+                        </div>
                         <input type="number" id="tick-buffer" value="1" min="0">
                     </div>
                 </div>
@@ -703,21 +807,41 @@
                 <!-- ATR-Based Parameters -->
                 <div id="atr-params" class="conditional-params hidden">
                     <div class="form-group">
-                        <label>ATR Period</label>
+                        <div class="label-with-tooltip">
+                            <label>ATR Period</label>
+                            <span class="tooltip-icon">?
+                                <div class="tooltip-content">Default: 14 (bars for ATR calculation)</div>
+                            </span>
+                        </div>
                         <input type="number" id="atr-period" value="14" min="1">
                     </div>
                     <div class="form-group">
-                        <label>ATR Multiplier</label>
+                        <div class="label-with-tooltip">
+                            <label>ATR Multiplier</label>
+                            <span class="tooltip-icon">?
+                                <div class="tooltip-content">Default: 0.5 (multiplier for ATR distance)</div>
+                            </span>
+                        </div>
                         <input type="number" id="atr-multiplier" value="0.5" step="0.1" min="0.1">
                     </div>
                     <div class="form-group">
-                        <label>Minimum Stop (ticks)</label>
+                        <div class="label-with-tooltip">
+                            <label>Minimum Stop (ticks)</label>
+                            <span class="tooltip-icon">?
+                                <div class="tooltip-content">Default: 1 (minimum stop distance in ticks)</div>
+                            </span>
+                        </div>
                         <input type="number" id="min-stop-ticks" value="1" min="1">
                     </div>
                 </div>
                 
                 <div class="form-group">
-                    <label>Target R Multiple</label>
+                    <div class="label-with-tooltip">
+                        <label>Target R Multiple</label>
+                        <span class="tooltip-icon">?
+                            <div class="tooltip-content">Default: 1.5 (target = 1.5x risk distance)</div>
+                        </span>
+                    </div>
                     <input type="number" id="target-r-multiple" value="1.5" step="0.1" min="0.5">
                 </div>
             </div>
@@ -726,15 +850,30 @@
             <div class="section">
                 <div class="section-title">⚠️ Risk Management</div>
                 <div class="form-group">
-                    <label>Initial Position Size (1R)</label>
+                    <div class="label-with-tooltip">
+                        <label>Initial Position Size (1R)</label>
+                        <span class="tooltip-icon">?
+                            <div class="tooltip-content">Default: 100 (base position size for 1R risk)</div>
+                        </span>
+                    </div>
                     <input type="number" id="initial-position-size" value="100" placeholder="100" min="1">
                 </div>
                 <div class="form-group">
-                    <label>Martingale Progression</label>
+                    <div class="label-with-tooltip">
+                        <label>Martingale Progression</label>
+                        <span class="tooltip-icon">?
+                            <div class="tooltip-content">Default: 1, 2, 4, 8 (position multipliers for each trade)</div>
+                        </span>
+                    </div>
                     <input type="text" id="martingale-progression" value="1, 2, 4, 8" placeholder="1, 2, 4, 8">
                 </div>
                 <div class="form-group">
-                    <label>Max Session Risk (R)</label>
+                    <div class="label-with-tooltip">
+                        <label>Max Session Risk (R)</label>
+                        <span class="tooltip-icon">?
+                            <div class="tooltip-content">Default: 15 (maximum total risk per session)</div>
+                        </span>
+                    </div>
                     <input type="number" id="max-session-risk" value="15" placeholder="15" min="1">
                 </div>
             </div>
@@ -851,6 +990,23 @@
                 <!-- Apply Filters Button -->
                 <button class="btn" onclick="applyFilters()" style="margin-top: 15px;">🔄 Apply Filters</button>
                 <button class="btn btn-secondary" onclick="resetFilters()" style="margin-top: 10px;">↺ Reset All</button>
+            </div>
+            
+            <!-- User Settings Section -->
+            <div class="section" data-label="user-settings">
+                <div class="section-title">⚙️ User Settings</div>
+                <div class="form-group">
+                    <label>Persistent Preferences</label>
+                    <div style="font-size: 12px; color: #8b949e; margin-bottom: 10px;">
+                        Save current settings to persist across browser sessions
+                    </div>
+                    <div style="display: flex; gap: 10px; flex-direction: column;">
+                        <button class="btn btn-secondary" onclick="saveUserSettings()" id="save-settings-btn">💾 Save Current Settings</button>
+                        <button class="btn btn-secondary" onclick="loadUserSettings()" id="load-settings-btn">📂 Load Saved Settings</button>
+                        <button class="btn btn-secondary" onclick="clearUserSettings()" id="clear-settings-btn">🗑️ Clear Saved Settings</button>
+                    </div>
+                </div>
+                <div id="settings-status" class="status-message hidden" style="margin-top: 10px; font-size: 12px;"></div>
             </div>
         </div>
         
@@ -1107,7 +1263,6 @@
         // Stop/target method toggle
         function toggleStopMethod(method) {
             // Update toggle buttons
-            const buttons = document.querySelectorAll('#bar-params, #atr-params').forEach(el => el.parentElement).querySelectorAll('.toggle-option');
             document.querySelectorAll('.section .toggle-group .toggle-option').forEach(btn => {
                 if (btn.textContent.includes('Bar') || btn.textContent.includes('ATR')) {
                     btn.classList.remove('active');
@@ -1321,7 +1476,6 @@
                     hideElement('progress-modal');
                 }, 1500);
 
-                console.log('✅ File uploaded and processed successfully');
 
             } catch (error) {
                 console.error('❌ File upload failed:', error);
@@ -1400,7 +1554,6 @@
                 throw new Error('metadata missing required fields (asset, startDate, endDate)');
             }
 
-            console.log('✅ Data structure validation passed');
         }
 
         // Update file upload status display
@@ -1418,11 +1571,24 @@
 
         // Configuration getters for other parts
         function getSessionConfig() {
+            const stopSection = Array.from(document.querySelectorAll('.section')).find(section => 
+                section.querySelector('.section-title')?.textContent.includes('Stop/Target Method')
+            );
+            const activeButton = stopSection?.querySelector('.toggle-group .toggle-option.active');
+            const activeText = activeButton ? activeButton.textContent : 'none found';
+            console.log(`DEBUG Config: Stop/Target active button='${activeText}', includes('bar')=${activeText.toLowerCase().includes('bar')}`);
+            
             return {
                 sessionLength: parseInt(document.getElementById('session-length').value) || 240,
                 openingRange: parseInt(document.getElementById('opening-range').value) || 10,
                 sessionStarts: document.getElementById('session-starts').value.split(',').map(s => s.trim()),
-                stopMethod: document.querySelector('.section .toggle-group .toggle-option.active').textContent.toLowerCase().includes('bar') ? 'bar' : 'atr',
+                stopMethod: (() => {
+                    const stopSection = Array.from(document.querySelectorAll('.section')).find(section => 
+                        section.querySelector('.section-title')?.textContent.includes('Stop/Target Method')
+                    );
+                    const activeButton = stopSection?.querySelector('.toggle-group .toggle-option.active');
+                    return activeButton?.textContent.toLowerCase().includes('bar') ? 'bar' : 'atr';
+                })(),
                 tickBuffer: parseInt(document.getElementById('tick-buffer').value) || 1,
                 atrPeriod: parseInt(document.getElementById('atr-period').value) || 14,
                 atrMultiplier: parseFloat(document.getElementById('atr-multiplier').value) || 0.5,
@@ -1899,7 +2065,6 @@
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
                 
-                console.log(`Data saved as: ${filename}`);
                 
             } catch (error) {
                 console.error('Failed to save file:', error);
@@ -2047,8 +2212,6 @@
                     throw new Error('LightweightCharts library not loaded');
                 }
                 
-                console.log('LightweightCharts object:', LightweightCharts);
-                console.log('Available methods on chart:', Object.getOwnPropertyNames(LightweightCharts.createChart(document.createElement('div'), {width: 100, height: 100}).__proto__));
 
                 // Create minimal chart config to avoid assertion failures
                 const minimalConfig = {
@@ -2056,11 +2219,9 @@
                     height: chartContainer.offsetHeight,
                 };
 
-                console.log('Creating chart with minimal config:', minimalConfig);
                 
                 // Create chart using v5.0.8 API with minimal config first
                 chart = createChart(chartContainer, minimalConfig);
-                console.log('Chart created successfully');
 
                 // Apply styling after creation - matching reference pattern
                 chart.applyOptions({
@@ -2091,7 +2252,6 @@
                 });
 
                 // Add candlestick series using the correct v5.0.8 API
-                console.log('Adding candlestick series...');
                 
                 candlestickSeries = chart.addSeries(CandlestickSeries, {
                     upColor: '#26a69a',
@@ -2108,13 +2268,11 @@
                     lastValueVisible: false,
                     priceLineVisible: false,
                 });
-                console.log('Candlestick series added successfully');
 
                 // Store chart reference globally
                 window.dashboardState.chart = chart;
 
-                console.log('Chart initialized successfully with Lightweight Charts v5.0.8');
-                
+                    
                 // Do NOT load data automatically during initialization
                 // Data will be loaded explicitly after download via loadChartData()
 
@@ -2133,7 +2291,6 @@
 
         // Load chart data using v5.0.8 API with support for multiple chart types
         function loadChartData(data, chartType = 'candles', decimals = 4) {
-            console.log('loadChartData called with data:', data ? data.length : 'null', 'chartType:', chartType);
             
             if (!chart) {
                 console.error('Chart not ready');
@@ -2146,11 +2303,9 @@
             }
 
             try {
-                console.log('Raw data sample:', data.slice(0, 3));
                 
                 // Step 1: Validate and clean the data
                 const validatedData = validateAndCleanChartData(data);
-                console.log('Validated data sample:', validatedData.slice(0, 3));
                 
                 if (validatedData.length === 0) {
                     throw new Error('No valid data after validation');
@@ -2216,7 +2371,6 @@
 
                 // Step 4: Set data using v5.0.8 API
                 series.setData(processedData);
-                console.log(`${chartType} data set successfully`);
 
                 // Store series reference
                 candlestickSeries = series;
@@ -2224,7 +2378,6 @@
                 // Auto-fit content
                 chart.timeScale().fitContent();
 
-                console.log(`✅ Chart loaded successfully with ${processedData.length} data points (${chartType})`);
 
                 // Update chart placeholder text
                 const chartContainer = document.getElementById('chart-placeholder');
@@ -2255,7 +2408,6 @@
 
         // Comprehensive data validation and cleaning function
         function validateAndCleanChartData(rawData) {
-            console.log('Validating chart data...');
             
             if (!Array.isArray(rawData)) {
                 throw new Error('Data is not an array');
@@ -2293,7 +2445,6 @@
                 return true;
             });
 
-            console.log(`Filtered ${rawData.length} -> ${validEntries.length} valid entries`);
 
             if (validEntries.length === 0) {
                 throw new Error('No valid entries found in data');
@@ -2324,16 +2475,6 @@
                 }
             }
 
-            console.log('✅ Data validation complete:', {
-                original: rawData.length,
-                valid: validEntries.length,
-                normalized: normalizedData.length,
-                unique: uniqueData.length,
-                timeRange: {
-                    start: new Date(uniqueData[0]?.time * 1000).toISOString(),
-                    end: new Date(uniqueData[uniqueData.length - 1]?.time * 1000).toISOString()
-                }
-            });
 
             return uniqueData;
         }
@@ -2343,10 +2484,8 @@
 
         // Add trade lines to the chart (horizontal lines from entry to session end)
         function addTradeMarkers(trades) {
-            console.log('addTradeMarkers called with:', trades?.length || 0, 'trades');
             
             if (!chart || !candlestickSeries || !trades || trades.length === 0) {
-                console.log('Missing requirements:', { chart: !!chart, candlestickSeries: !!candlestickSeries, trades: trades?.length || 0 });
                 return;
             }
 
@@ -2357,7 +2496,6 @@
                 // Group trades by their entry time to get entry/target/stop together
                 const tradeGroups = new Map();
                 trades.forEach(trade => {
-                    console.log('Processing trade:', trade);
                     const key = trade.time;
                     if (!tradeGroups.has(key)) {
                         tradeGroups.set(key, { entry: null, target: null, stop: null, sessionEnd: null });
@@ -2366,24 +2504,20 @@
                     group[trade.type] = trade;
                 });
 
-                console.log('Trade groups created:', tradeGroups.size);
 
                 // Create horizontal lines for each trade group
                 tradeGroups.forEach((group, entryTime) => {
-                    console.log('Processing group for time:', entryTime, 'Group:', group);
                     if (!group.entry || !group.target || !group.stop) {
-                        console.log('Missing group data:', { entry: !!group.entry, target: !!group.target, stop: !!group.stop });
                         return;
                     }
 
                     // Find session end time for this trade
                     const sessionEnd = findSessionEndTime(entryTime);
-                    console.log('Session end time:', sessionEnd);
                     if (!sessionEnd) return;
 
-                    // Create entry line (blue)
+                    // Create entry line (transparent)
                     const entryLineSeries = chart.addSeries(LineSeries, {
-                        color: '#2563eb',
+                        color: 'transparent',
                         lineWidth: 1,
                         lineStyle: 1, // Dotted line
                         priceLineVisible: false,
@@ -2397,9 +2531,9 @@
                     entryLineSeries.setData(entryLineData);
                     tradeMarkers.push(entryLineSeries);
 
-                    // Create target line (green)
+                    // Create target line (transparent)
                     const targetLineSeries = chart.addSeries(LineSeries, {
-                        color: '#16a34a',
+                        color: 'transparent',
                         lineWidth: 1,
                         lineStyle: 1, // Dotted line
                         priceLineVisible: false,
@@ -2413,9 +2547,9 @@
                     targetLineSeries.setData(targetLineData);
                     tradeMarkers.push(targetLineSeries);
 
-                    // Create stop line (red)
+                    // Create stop line (transparent)
                     const stopLineSeries = chart.addSeries(LineSeries, {
-                        color: '#dc2626',
+                        color: 'transparent',
                         lineWidth: 1,
                         lineStyle: 1, // Dotted line
                         priceLineVisible: false,
@@ -2434,58 +2568,56 @@
                 tradeGroups.forEach((group, entryTime) => {
                     if (!group.entry || !group.target || !group.stop) return;
                     
-                    // Blue circle marker for entry price (transparent for now)
+                    // Blue circle marker for entry price
                     const entryMarkerSeries = chart.addSeries(LineSeries, {
-                        color: 'transparent',
+                        color: '#58a6ff',
                         lineWidth: 0,
-                        pointMarkersVisible: false,
+                        pointMarkersVisible: true,
                         pointMarkersRadius: 4,
                         priceLineVisible: false,
                         lastValueVisible: false,
                         crosshairMarkerVisible: false,
                         crosshairMarkerRadius: 4,
-                        crosshairMarkerBorderColor: 'transparent',
-                        crosshairMarkerBackgroundColor: 'transparent'
+                        crosshairMarkerBorderColor: '#58a6ff',
+                        crosshairMarkerBackgroundColor: '#58a6ff'
                     });
                     entryMarkerSeries.setData([{ time: entryTime, value: group.entry.price }]);
                     tradeMarkers.push(entryMarkerSeries);
                     
-                    // Green circle marker for target price (transparent for now)
+                    // Green circle marker for target price
                     const targetMarkerSeries = chart.addSeries(LineSeries, {
-                        color: 'transparent',
+                        color: '#00d462',
                         lineWidth: 0,
-                        pointMarkersVisible: false,
+                        pointMarkersVisible: true,
                         pointMarkersRadius: 4,
                         priceLineVisible: false,
                         lastValueVisible: false,
                         crosshairMarkerVisible: false,
                         crosshairMarkerRadius: 4,
-                        crosshairMarkerBorderColor: 'transparent',
-                        crosshairMarkerBackgroundColor: 'transparent'
+                        crosshairMarkerBorderColor: '#00d462',
+                        crosshairMarkerBackgroundColor: '#00d462'
                     });
                     targetMarkerSeries.setData([{ time: entryTime, value: group.target.price }]);
                     tradeMarkers.push(targetMarkerSeries);
                     
-                    // Red circle marker for stop price (transparent for now)
+                    // Red circle marker for stop price
                     const stopMarkerSeries = chart.addSeries(LineSeries, {
-                        color: 'transparent',
+                        color: '#f85149',
                         lineWidth: 0,
-                        pointMarkersVisible: false,
+                        pointMarkersVisible: true,
                         pointMarkersRadius: 4,
                         priceLineVisible: false,
                         lastValueVisible: false,
                         crosshairMarkerVisible: false,
                         crosshairMarkerRadius: 4,
-                        crosshairMarkerBorderColor: 'transparent',
-                        crosshairMarkerBackgroundColor: 'transparent'
+                        crosshairMarkerBorderColor: '#f85149',
+                        crosshairMarkerBackgroundColor: '#f85149'
                     });
                     stopMarkerSeries.setData([{ time: entryTime, value: group.stop.price }]);
                     tradeMarkers.push(stopMarkerSeries);
                 });
 
-                console.log(`Added circle markers using LineSeries`);
 
-                console.log(`Added ${tradeMarkers.length} trade lines to chart`);
 
             } catch (error) {
                 console.error('Failed to add trade lines:', error);
@@ -2547,7 +2679,6 @@
                     }
                 });
 
-                console.log(`Session opening ranges processed (horizontal lines disabled)`);
 
             } catch (error) {
                 console.error('Failed to add session boxes:', error);
@@ -2697,7 +2828,6 @@
                 if (param.time) {
                     const trades = tradeMarkers.filter(marker => marker.time === param.time);
                     if (trades.length > 0) {
-                        console.log('Trade clicked:', trades[0]);
                         // Could show trade details popup here
                     }
                 }
@@ -2741,9 +2871,8 @@
             }
 
             // Main backtest execution
-            async runBacktest(chartData, backtestData) {
+            async runBacktest(chartData, backtestData, metadata) {
                 try {
-                    console.log('Starting backtest with config:', this.config);
                     
                     // Initialize
                     this.sessions = [];
@@ -2751,11 +2880,10 @@
                     
                     // Generate sessions
                     const sessions = this.generateSessions(chartData);
-                    console.log(`Generated ${sessions.length} sessions`);
                     
                     // Process each session
                     for (let i = 0; i < sessions.length; i++) {
-                        await this.processSession(sessions[i], chartData, backtestData);
+                        await this.processSession(sessions[i], chartData, backtestData, metadata);
                         
                         // Update progress
                         if (i % 10 === 0) {
@@ -2767,7 +2895,6 @@
                     // Calculate statistics
                     this.calculateStatistics();
                     
-                    console.log(`Backtest complete: ${this.allTrades.length} trades across ${this.sessions.length} sessions`);
                     return this.getResults();
                     
                 } catch (error) {
@@ -2831,10 +2958,10 @@
             }
 
             // Process individual session
-            async processSession(session, chartData, backtestData) {
+            async processSession(session, chartData, backtestData, metadata) {
                 try {
                     // Calculate opening range
-                    const openingRange = this.calculateOpeningRange(session, chartData);
+                    const openingRange = this.calculateOpeningRange(session, chartData, metadata);
                     if (!openingRange) {
                         session.result = { trades: [], pnl: 0, reason: 'No opening range data' };
                         this.sessions.push(session);
@@ -2873,12 +3000,34 @@
                 }
             }
 
-            // Calculate opening range from chart data
-            calculateOpeningRange(session, chartData) {
-                const openingRangeData = chartData.filter(candle =>
-                    candle.timestamp >= session.openingRangeStart &&
-                    candle.timestamp <= session.openingRangeEnd
-                );
+            // Calculate opening range from chart data using Display TF bars
+            calculateOpeningRange(session, chartData, metadata) {
+                // Get session data starting from session start
+                const sessionData = chartData.filter(candle =>
+                    candle.timestamp >= session.startTime &&
+                    candle.timestamp < session.endTime
+                ).sort((a, b) => a.timestamp - b.timestamp);
+
+                if (sessionData.length === 0) {
+                    return null;
+                }
+
+                // Calculate how many Display TF bars make up the Opening Range
+                // Opening Range (minutes) ÷ Display TF (minutes) = number of bars
+                const timeframeToMinutes = {
+                    '1m': 1, '3m': 3, '5m': 5, '15m': 15, '30m': 30,
+                    '1h': 60, '2h': 120, '4h': 240, '8h': 480, '12h': 720, '1d': 1440
+                };
+                
+                // Get actual timeframe from metadata instead of config
+                const actualChartTimeframe = metadata?.chartTimeframe || '15m';
+                const displayTfMinutes = timeframeToMinutes[actualChartTimeframe] || 15;
+                const openingRangeMinutes = this.config.openingRange;
+                const openingRangeBars = Math.ceil(openingRangeMinutes / displayTfMinutes);
+                
+
+                // Take the first N bars of the session for Opening Range
+                const openingRangeData = sessionData.slice(0, openingRangeBars);
 
                 if (openingRangeData.length === 0) {
                     return null;
@@ -2886,13 +3035,16 @@
 
                 const high = Math.max(...openingRangeData.map(c => c.high));
                 const low = Math.min(...openingRangeData.map(c => c.low));
+                
 
                 return {
                     high: high,
                     low: low,
-                    startTime: session.openingRangeStart,
-                    endTime: session.openingRangeEnd,
-                    range: high - low
+                    startTime: openingRangeData[0].timestamp,
+                    endTime: openingRangeData[openingRangeData.length - 1].timestamp,
+                    range: high - low,
+                    bars: openingRangeData,  // Store the actual bars for reference
+                    barCount: openingRangeBars
                 };
             }
 
@@ -2916,7 +3068,8 @@
                         backtestData, 
                         currentTradeNum,
                         atr,
-                        trades
+                        trades,
+                        chartData
                     );
 
                     if (trade) {
@@ -2945,8 +3098,24 @@
             }
 
             // Execute a single trade in the martingale sequence
-            async executeSingleTrade(session, backtestData, tradeNum, atr, previousTrades) {
+            async executeSingleTrade(session, backtestData, tradeNum, atr, previousTrades, chartData) {
                 try {
+                    // Validate required data
+                    if (!session || !session.openingRange) {
+                        console.error('Missing session or opening range data');
+                        return null;
+                    }
+                    
+                    if (!backtestData || backtestData.length === 0) {
+                        console.error('No backtest data available');
+                        return null;
+                    }
+                    
+                    if (!chartData || chartData.length === 0) {
+                        console.error('No chart data available for bar-based stops');
+                        return null;
+                    }
+
                     // Determine trade direction based on sequence
                     let direction = null;
                     let entryPrice = null;
@@ -2961,8 +3130,16 @@
                         entryPrice = breakout.price;
                     } else {
                         // Subsequent trades: opposite direction at previous stop price
+                        if (!previousTrades || previousTrades.length === 0) {
+                            console.error(`Trade ${tradeNum} requires previous trades but none available`);
+                            return null;
+                        }
+                        
                         const lastTrade = previousTrades[previousTrades.length - 1];
-                        if (!lastTrade || lastTrade.exitReason !== 'stop') return null;
+                        if (!lastTrade || lastTrade.exitReason !== 'stop') {
+                            console.error(`Trade ${tradeNum} requires previous trade to be stopped out`);
+                            return null;
+                        }
 
                         direction = lastTrade.side === 'LONG' ? 'SHORT' : 'LONG';
                         entryPrice = lastTrade.stopPrice;
@@ -2973,13 +3150,30 @@
                         direction, 
                         entryPrice, 
                         session.openingRange, 
-                        atr
+                        atr,
+                        tradeNum,
+                        previousTrades,
+                        chartData
                     );
 
                     if (!stopTarget) return null;
 
                     stopPrice = stopTarget.stop;
                     const targetPrice = stopTarget.target;
+                    console.log(`DEBUG After assignment: stopPrice=${stopPrice}, targetPrice=${targetPrice}`);
+
+                    // Logging for Trade 1
+                    if (tradeNum === 1) {
+                        const orBars = session.openingRange.bars.map(bar => new Date(bar.timestamp).toISOString());
+                        console.log(`Trade 1: OR bars: ${orBars}, OR High: ${session.openingRange.high}, OR Low: ${session.openingRange.low}, Entry: ${entryPrice}, Stop: ${stopPrice}, Target: ${targetPrice}`);
+                    } else {
+                        // Logging for Trade 2+
+                        const lastTrade = previousTrades[previousTrades.length - 1];
+                        const currentBarTime = new Date(lastTrade.exitTime).toISOString();
+                        const priorBar = this.findPriorBarForStop(lastTrade, chartData);
+                        const priorBarTime = priorBar ? new Date(priorBar.timestamp).toISOString() : 'unknown';
+                        console.log(`Trade ${tradeNum}: Current bar: ${currentBarTime}, Prior bar: ${priorBarTime}, Entry: ${entryPrice}, Stop: ${stopPrice}, Target: ${targetPrice}`);
+                    }
 
                     // Calculate position size based on martingale progression
                     const positionMultiplier = this.config.martingaleProgression[tradeNum - 1] || 1;
@@ -2997,7 +3191,8 @@
                         direction,
                         backtestData,
                         session,
-                        entryTime
+                        entryTime,
+                        chartData
                     );
 
                     if (!exit) return null;
@@ -3026,7 +3221,8 @@
                         pnlR: pnlR,
                         pnlDollar: pnlAmount * positionSize,
                         duration: exit.time - entryTime,
-                        riskAmount: riskAmount
+                        riskAmount: riskAmount,
+                        stopBarInfo: exit.stopBarInfo || null  // Store stop bar info for stopped trades
                     };
 
                     return trade;
@@ -3041,15 +3237,17 @@
             findFirstBreakout(session, backtestData) {
                 // Look for data after opening range ends
                 const postORData = backtestData.filter(candle => 
-                    candle.timestamp > session.openingRangeEnd
+                    candle.timestamp > session.openingRange.endTime
                 );
+
+                const tickBuffer = this.config.tickBuffer * this.config.tickSize;
 
                 for (const candle of postORData) {
                     // Check for breakout above opening range high
                     if (candle.high > session.openingRange.high) {
                         return {
                             direction: 'LONG',
-                            price: session.openingRange.high,
+                            price: session.openingRange.high + tickBuffer,  // Entry above high + buffer
                             time: candle.timestamp
                         };
                     }
@@ -3057,7 +3255,7 @@
                     if (candle.low < session.openingRange.low) {
                         return {
                             direction: 'SHORT',
-                            price: session.openingRange.low,
+                            price: session.openingRange.low - tickBuffer,   // Entry below low - buffer
                             time: candle.timestamp
                         };
                     }
@@ -3066,29 +3264,55 @@
                 return null; // No breakout found
             }
 
-            // Calculate stop and target prices
-            calculateStopAndTarget(direction, entryPrice, openingRange, atr) {
+            // Calculate stop and target prices  
+            calculateStopAndTarget(direction, entryPrice, openingRange, atr, tradeNumber = 1, previousTrades = [], chartData = []) {
                 let stopPrice, targetPrice;
+                console.log(`DEBUG Method Check: this.config.stopMethod='${this.config.stopMethod}'`);
 
                 if (this.config.stopMethod === 'bar') {
                     // Bar-based stops
                     const tickBuffer = this.config.tickBuffer * this.config.tickSize;
+                    console.log(`DEBUG Stop Calc: method=${this.config.stopMethod}, tickBuffer=${this.config.tickBuffer}, tickSize=${this.config.tickSize}, calculated=${tickBuffer}`);
                     
-                    if (direction === 'LONG') {
-                        stopPrice = openingRange.low - tickBuffer;
+                    if (tradeNumber === 1) {
+                        // Trade 1: Use Opening Range boundaries
+                        if (direction === 'LONG') {
+                            stopPrice = openingRange.low - tickBuffer;
+                            console.log(`DEBUG LONG Stop: OR Low=${openingRange.low}, tickBuffer=${tickBuffer}, calculated stop=${stopPrice}`);
+                        } else {
+                            stopPrice = openingRange.high + tickBuffer;
+                            console.log(`DEBUG SHORT Stop: OR High=${openingRange.high}, tickBuffer=${tickBuffer}, calculated stop=${stopPrice}`);
+                        }
                     } else {
-                        stopPrice = openingRange.high + tickBuffer;
+                        // Trade 2+: Use "prior bar" relative to stop trigger bar
+                        const lastTrade = previousTrades[previousTrades.length - 1];
+                        const priorBar = this.findPriorBarForStop(lastTrade, chartData);
+                        
+                        if (!priorBar) {
+                            console.error(`Could not find prior bar for trade ${tradeNumber} - trade will fail`);
+                            return null; // Fail trade cleanly instead of using fallback
+                        }
+                        
+                        if (direction === 'LONG') {
+                            stopPrice = priorBar.low - tickBuffer;
+                        } else {
+                            stopPrice = priorBar.high + tickBuffer;
+                        }
                     }
                 } else {
-                    // ATR-based stops
+                    // ATR-based stops (unchanged - same for all trades)
+                    console.log(`DEBUG ATR Mode: atr=${atr}, atrMultiplier=${this.config.atrMultiplier}, minStopTicks=${this.config.minStopTicks}, tickSize=${this.config.tickSize}`);
                     const atrStop = atr * this.config.atrMultiplier;
                     const minStop = this.config.minStopTicks * this.config.tickSize;
                     const stopDistance = Math.max(atrStop, minStop);
+                    console.log(`DEBUG ATR Calc: atrStop=${atrStop}, minStop=${minStop}, stopDistance=${stopDistance}, entryPrice=${entryPrice}`);
 
                     if (direction === 'LONG') {
                         stopPrice = entryPrice - stopDistance;
+                        console.log(`DEBUG ATR LONG: entryPrice=${entryPrice} - stopDistance=${stopDistance} = stop=${stopPrice}`);
                     } else {
                         stopPrice = entryPrice + stopDistance;
+                        console.log(`DEBUG ATR SHORT: entryPrice=${entryPrice} + stopDistance=${stopDistance} = stop=${stopPrice}`);
                     }
                 }
 
@@ -3102,6 +3326,8 @@
                     targetPrice = entryPrice - targetDistance;
                 }
 
+                console.log(`DEBUG Final Values: stop=${stopPrice}, target=${targetPrice}, stopDistance=${stopDistance}`);
+                
                 return {
                     stop: stopPrice,
                     target: targetPrice,
@@ -3110,10 +3336,94 @@
                 };
             }
 
+            // Find the "prior bar" for stop calculation in martingale trades
+            findPriorBarForStop(lastTrade, chartData) {
+                try {
+                    // Check if trade was stopped and has stopBarInfo
+                    if (lastTrade.exitReason !== 'stop' || !lastTrade.stopBarInfo) {
+                        console.error('Trade was not stopped or missing stopBarInfo');
+                        return null;
+                    }
+
+                    const stopBarInfo = lastTrade.stopBarInfo;
+                    if (!stopBarInfo || !stopBarInfo.sessionChartData || stopBarInfo.index === undefined) {
+                        console.error('Invalid stopBarInfo in trade record');
+                        return null;
+                    }
+
+                    // Get the prior bar from the stored session chart data
+                    const priorBarIndex = stopBarInfo.index - 1;
+                    if (priorBarIndex < 0) {
+                        console.error('No prior bar available - stop occurred on first bar of session');
+                        return null;
+                    }
+
+                    const priorBar = stopBarInfo.sessionChartData[priorBarIndex];
+                    if (!priorBar) {
+                        console.error(`Prior bar at index ${priorBarIndex} not found`);
+                        return null;
+                    }
+
+                    return priorBar;
+                    
+                } catch (error) {
+                    console.error('Error finding prior bar:', error);
+                    return null;
+                }
+            }
+
+            // Map any timestamp to its containing Display TF bar
+            findDisplayBarForTimestamp(timestamp, chartData, session) {
+                try {
+                    // Get session chart data sorted by time
+                    const sessionChartData = chartData.filter(candle =>
+                        candle.timestamp >= session.startTime &&
+                        candle.timestamp < session.endTime
+                    ).sort((a, b) => a.timestamp - b.timestamp);
+
+                    if (sessionChartData.length === 0) {
+                        console.warn('No chart data available for session');
+                        return null;
+                    }
+
+                    // Find the Display TF bar that contains this timestamp
+                    for (let i = 0; i < sessionChartData.length; i++) {
+                        const currentBar = sessionChartData[i];
+                        const nextBar = sessionChartData[i + 1];
+
+                        // Timestamp falls within this bar's timeframe
+                        if (timestamp >= currentBar.timestamp && 
+                            (!nextBar || timestamp < nextBar.timestamp)) {
+                            return {
+                                bar: currentBar,
+                                index: i,
+                                sessionChartData: sessionChartData
+                            };
+                        }
+                    }
+
+                    // If timestamp is after all bars, return the last bar
+                    if (timestamp >= sessionChartData[sessionChartData.length - 1].timestamp) {
+                        return {
+                            bar: sessionChartData[sessionChartData.length - 1],
+                            index: sessionChartData.length - 1,
+                            sessionChartData: sessionChartData
+                        };
+                    }
+
+                    console.warn(`Could not find Display TF bar for timestamp ${timestamp}`);
+                    return null;
+
+                } catch (error) {
+                    console.error('Error mapping timestamp to Display TF bar:', error);
+                    return null;
+                }
+            }
+
             // Find entry time for a trade
             findEntryTime(entryPrice, direction, backtestData, session) {
                 for (const candle of backtestData) {
-                    if (candle.timestamp <= session.openingRangeEnd) continue;
+                    if (candle.timestamp <= session.openingRange.endTime) continue;
                     if (candle.timestamp > session.endTime) break;
 
                     // Check if price reached entry level
@@ -3128,7 +3438,7 @@
             }
 
             // Simulate trade execution and find exit
-            simulateTradeExecution(entryPrice, stopPrice, targetPrice, direction, backtestData, session, entryTime) {
+            simulateTradeExecution(entryPrice, stopPrice, targetPrice, direction, backtestData, session, entryTime, chartData) {
                 for (const candle of backtestData) {
                     if (candle.timestamp <= entryTime) continue;
                     if (candle.timestamp > session.endTime) {
@@ -3144,10 +3454,13 @@
                     if (direction === 'LONG') {
                         // For long trades: check stop first (conservative approach)
                         if (candle.low <= stopPrice) {
+                            // Find the Display TF bar that contains this stop time
+                            const stopBarInfo = this.findDisplayBarForTimestamp(candle.timestamp, chartData, session);
                             return {
                                 price: stopPrice,
                                 time: candle.timestamp,
-                                reason: 'stop'
+                                reason: 'stop',
+                                stopBarInfo: stopBarInfo  // Store for later reference
                             };
                         }
                         // Check target (require price to exceed target by at least 1 tick)
@@ -3161,10 +3474,13 @@
                     } else {
                         // For short trades: check stop first (conservative approach)
                         if (candle.high >= stopPrice) {
+                            // Find the Display TF bar that contains this stop time
+                            const stopBarInfo = this.findDisplayBarForTimestamp(candle.timestamp, chartData, session);
                             return {
                                 price: stopPrice,
                                 time: candle.timestamp,
-                                reason: 'stop'
+                                reason: 'stop',
+                                stopBarInfo: stopBarInfo  // Store for later reference
                             };
                         }
                         // Check target (require price to exceed target by at least 1 tick)
@@ -3342,7 +3658,6 @@
 
                 // Get configuration
                 const config = getSessionConfig();
-                console.log('Backtest config:', config);
 
                 // Get data
                 const chartData = downloadedData.chartData;
@@ -3362,7 +3677,7 @@
 
                 // Run backtest
                 updateBacktestProgress(10, 'Starting backtest engine...');
-                const results = await backtester.runBacktest(chartData, backtestData);
+                const results = await backtester.runBacktest(chartData, backtestData, downloadedData.metadata);
 
                 // Store results
                 backtestResults = results;
@@ -3384,7 +3699,6 @@
                 updateBacktestProgress(100, 'Backtest complete!');
                 setTimeout(hideBacktestProgress, 2000);
 
-                console.log('Backtest completed successfully');
 
             } catch (error) {
                 console.error('Backtest failed:', error);
@@ -3719,6 +4033,159 @@
             }
         }
 
+        // User Settings Functions for LocalStorage persistence
+        function saveUserSettings() {
+            try {
+                const userSettings = {
+                    // Data configuration
+                    dataSource: document.querySelector('.controls-panel .toggle-option.active').textContent.includes('API') ? 'api' : 'upload',
+                    assetSelect: document.getElementById('asset-select')?.value || '',
+                    chartTimeframe: document.getElementById('chart-timeframe-select')?.value || '15m',
+                    backtestTimeframe: document.getElementById('backtest-timeframe-select')?.value || '5m',
+                    tickSize: document.getElementById('tick-size')?.value || '0.01',
+                    
+                    // Session configuration
+                    sessionLength: document.getElementById('session-length')?.value || '240',
+                    openingRange: document.getElementById('opening-range')?.value || '10',
+                    sessionStarts: document.getElementById('session-starts')?.value || '00:00, 04:00, 08:00, 12:00, 16:00, 20:00',
+                    
+                    // Stop/Target method
+                    stopMethod: document.querySelector('#bar-params').style.display !== 'none' ? 'bar' : 'atr',
+                    tickBuffer: document.getElementById('tick-buffer')?.value || '1',
+                    atrPeriod: document.getElementById('atr-period')?.value || '14',
+                    atrMultiplier: document.getElementById('atr-multiplier')?.value || '0.5',
+                    minStopTicks: document.getElementById('min-stop-ticks')?.value || '1',
+                    targetRMultiple: document.getElementById('target-r-multiple')?.value || '1.5',
+                    
+                    // Risk management
+                    initialPositionSize: document.getElementById('initial-position-size')?.value || '100',
+                    martingaleProgression: document.getElementById('martingale-progression')?.value || '1, 2, 4, 8',
+                    maxSessionRisk: document.getElementById('max-session-risk')?.value || '15',
+                    
+                    // Timestamp
+                    savedAt: new Date().toISOString()
+                };
+
+                localStorage.setItem('orbDashboardSettings', JSON.stringify(userSettings));
+                
+                showSettingsStatus('Settings saved successfully! ✅', 'success');
+                
+            } catch (error) {
+                console.error('Save user settings failed:', error);
+                showSettingsStatus('Failed to save settings ❌', 'error');
+            }
+        }
+
+        function loadUserSettings() {
+            try {
+                const savedSettings = localStorage.getItem('orbDashboardSettings');
+                
+                if (!savedSettings) {
+                    showSettingsStatus('No saved settings found 📭', 'info');
+                    return;
+                }
+
+                const settings = JSON.parse(savedSettings);
+                
+                // Apply data configuration
+                const dataSourceButtons = document.querySelectorAll('.controls-panel .toggle-option');
+                dataSourceButtons.forEach(btn => {
+                    btn.classList.remove('active');
+                    if ((settings.dataSource === 'api' && btn.textContent.includes('API')) ||
+                        (settings.dataSource === 'upload' && btn.textContent.includes('Upload'))) {
+                        btn.classList.add('active');
+                    }
+                });
+                
+                // Update form fields
+                if (settings.assetSelect && document.getElementById('asset-select')) {
+                    document.getElementById('asset-select').value = settings.assetSelect;
+                }
+                if (settings.chartTimeframe && document.getElementById('chart-timeframe-select')) {
+                    document.getElementById('chart-timeframe-select').value = settings.chartTimeframe;
+                }
+                if (settings.backtestTimeframe && document.getElementById('backtest-timeframe-select')) {
+                    document.getElementById('backtest-timeframe-select').value = settings.backtestTimeframe;
+                }
+                if (settings.tickSize && document.getElementById('tick-size')) {
+                    document.getElementById('tick-size').value = settings.tickSize;
+                }
+                
+                // Session configuration
+                if (settings.sessionLength && document.getElementById('session-length')) {
+                    document.getElementById('session-length').value = settings.sessionLength;
+                }
+                if (settings.openingRange && document.getElementById('opening-range')) {
+                    document.getElementById('opening-range').value = settings.openingRange;
+                }
+                if (settings.sessionStarts && document.getElementById('session-starts')) {
+                    document.getElementById('session-starts').value = settings.sessionStarts;
+                }
+                
+                // Stop/Target method
+                if (settings.stopMethod) {
+                    toggleStopMethod(settings.stopMethod);
+                }
+                if (settings.tickBuffer && document.getElementById('tick-buffer')) {
+                    document.getElementById('tick-buffer').value = settings.tickBuffer;
+                }
+                if (settings.atrPeriod && document.getElementById('atr-period')) {
+                    document.getElementById('atr-period').value = settings.atrPeriod;
+                }
+                if (settings.atrMultiplier && document.getElementById('atr-multiplier')) {
+                    document.getElementById('atr-multiplier').value = settings.atrMultiplier;
+                }
+                if (settings.minStopTicks && document.getElementById('min-stop-ticks')) {
+                    document.getElementById('min-stop-ticks').value = settings.minStopTicks;
+                }
+                if (settings.targetRMultiple && document.getElementById('target-r-multiple')) {
+                    document.getElementById('target-r-multiple').value = settings.targetRMultiple;
+                }
+                
+                // Risk management
+                if (settings.initialPositionSize && document.getElementById('initial-position-size')) {
+                    document.getElementById('initial-position-size').value = settings.initialPositionSize;
+                }
+                if (settings.martingaleProgression && document.getElementById('martingale-progression')) {
+                    document.getElementById('martingale-progression').value = settings.martingaleProgression;
+                }
+                if (settings.maxSessionRisk && document.getElementById('max-session-risk')) {
+                    document.getElementById('max-session-risk').value = settings.maxSessionRisk;
+                }
+
+                const savedDate = new Date(settings.savedAt).toLocaleDateString();
+                showSettingsStatus(`Settings loaded from ${savedDate} ✅`, 'success');
+                
+            } catch (error) {
+                console.error('Load user settings failed:', error);
+                showSettingsStatus('Failed to load settings ❌', 'error');
+            }
+        }
+
+        function clearUserSettings() {
+            try {
+                localStorage.removeItem('orbDashboardSettings');
+                showSettingsStatus('Settings cleared successfully ✅', 'success');
+            } catch (error) {
+                console.error('Clear user settings failed:', error);
+                showSettingsStatus('Failed to clear settings ❌', 'error');
+            }
+        }
+
+        function showSettingsStatus(message, type) {
+            const statusDiv = document.getElementById('settings-status');
+            if (statusDiv) {
+                statusDiv.textContent = message;
+                statusDiv.className = `status-message status-${type}`;
+                statusDiv.classList.remove('hidden');
+                
+                // Hide after 3 seconds
+                setTimeout(() => {
+                    statusDiv.classList.add('hidden');
+                }, 3000);
+            }
+        }
+
         // Initialize dashboard with default dates and settings
         function initializeDashboard() {
             try {
@@ -3751,7 +4218,13 @@
                 // Initialize filter status
                 updateFilterStatus('No data loaded - download data to begin');
 
-                console.log('Dashboard initialized successfully');
+                // Auto-load saved user settings if they exist
+                setTimeout(() => {
+                    const savedSettings = localStorage.getItem('orbDashboardSettings');
+                    if (savedSettings) {
+                        loadUserSettings();
+                    }
+                }, 500); // Small delay to ensure all elements are loaded
 
             } catch (error) {
                 console.error('Dashboard initialization failed:', error);
@@ -3789,7 +4262,6 @@
                     }
                 });
 
-                console.log('Event listeners set up successfully');
 
             } catch (error) {
                 console.error('Event listener setup failed:', error);
@@ -3818,7 +4290,6 @@
 
         // Main initialization when DOM is ready
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('ORB Trading Dashboard starting up...');
             
             try {
                 // Initialize dashboard
@@ -3827,10 +4298,6 @@
                 // Set up event listeners
                 setupEventListeners();
                 
-                console.log('✅ ORB Trading Dashboard loaded successfully');
-                console.log('📊 TradingView Lightweight Charts 5.0.8 ready');
-                console.log('🔗 HyperLiquid API integration ready');
-                console.log('🚀 Ready to download data and run backtests');
                 
                 // Small delay to ensure everything is loaded
                 setTimeout(() => {
@@ -3857,10 +4324,6 @@
             }
         });
 
-        console.log('📈 Opening Range Breakout (ORB) Trading Dashboard v1.0');
-        console.log('🔧 Built with: TradingView Lightweight Charts 5.0.8, HyperLiquid API');
-        console.log('💡 Strategy: Opening Range Breakout with Martingale Position Sizing');
-        console.log('⚡ Single HTML file - fully self-contained');
     </script>
 </body>
 </html>
