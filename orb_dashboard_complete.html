@@ -277,6 +277,35 @@
             color: #8b949e;
         }
         
+        /* P&L Charts Styling */
+        .pnl-charts-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .pnl-chart-item {
+            background: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        
+        .pnl-chart-title {
+            background: #30363d;
+            padding: 8px 12px;
+            font-weight: 600;
+            font-size: 13px;
+            border-bottom: 1px solid #30363d;
+            text-align: center;
+        }
+        
+        .pnl-chart {
+            height: 300px;
+            width: 100%;
+        }
+        
         /* Tables */
         .table-container {
             background: #21262d;
@@ -577,6 +606,15 @@
             
             .stats-grid {
                 grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .pnl-charts-container {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            
+            .pnl-chart {
+                height: 250px;
             }
         }
         
@@ -1062,6 +1100,21 @@
                                     </tr>
                                 </tbody>
                             </table>
+                        </div>
+                    </div>
+                    
+                    <!-- P&L Curves -->
+                    <div class="section" style="margin-top: 20px;">
+                        <div class="section-title">📈 P&L Curves</div>
+                        <div class="pnl-charts-container" data-label="pnl-charts">
+                            <div class="pnl-chart-item" data-label="session-pnl-chart">
+                                <div class="pnl-chart-title">Session P&L</div>
+                                <div id="session-pnl-chart" class="pnl-chart"></div>
+                            </div>
+                            <div class="pnl-chart-item" data-label="trade-pnl-chart">
+                                <div class="pnl-chart-title">Trade P&L</div>
+                                <div id="trade-pnl-chart" class="pnl-chart"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -2714,6 +2767,175 @@
             }
         }
 
+        // ===========================
+        // P&L Charts Functions
+        // ===========================
+        
+        let sessionPnLChart = null;
+        let tradePnLChart = null;
+        
+        function createSessionPnLChart() {
+            const container = document.getElementById('session-pnl-chart');
+            if (!container) return;
+            
+            // Destroy existing chart if it exists
+            if (sessionPnLChart) {
+                sessionPnLChart.remove();
+                sessionPnLChart = null;
+            }
+            
+            try {
+                sessionPnLChart = createChart(container, {
+                    width: container.clientWidth,
+                    height: 300,
+                    layout: {
+                        background: { color: '#161b22' },
+                        textColor: '#e6edf3',
+                    },
+                    grid: {
+                        vertLines: { color: '#30363d' },
+                        horzLines: { color: '#30363d' },
+                    },
+                    rightPriceScale: {
+                        borderColor: '#30363d',
+                    },
+                    timeScale: {
+                        borderColor: '#30363d',
+                        timeVisible: true,
+                        secondsVisible: false,
+                    },
+                    crosshair: {
+                        mode: 0,
+                    },
+                });
+                
+                const lineSeries = sessionPnLChart.addSeries(LineSeries, {
+                    color: '#56d364',
+                    lineWidth: 2,
+                    priceLineVisible: false,
+                    crosshairMarkerVisible: true,
+                });
+                
+                return { chart: sessionPnLChart, series: lineSeries };
+            } catch (error) {
+                console.error('Failed to create session P&L chart:', error);
+                return null;
+            }
+        }
+        
+        function createTradePnLChart() {
+            const container = document.getElementById('trade-pnl-chart');
+            if (!container) return;
+            
+            // Destroy existing chart if it exists
+            if (tradePnLChart) {
+                tradePnLChart.remove();
+                tradePnLChart = null;
+            }
+            
+            try {
+                tradePnLChart = createChart(container, {
+                    width: container.clientWidth,
+                    height: 300,
+                    layout: {
+                        background: { color: '#161b22' },
+                        textColor: '#e6edf3',
+                    },
+                    grid: {
+                        vertLines: { color: '#30363d' },
+                        horzLines: { color: '#30363d' },
+                    },
+                    rightPriceScale: {
+                        borderColor: '#30363d',
+                    },
+                    timeScale: {
+                        borderColor: '#30363d',
+                        timeVisible: true,
+                        secondsVisible: false,
+                    },
+                    crosshair: {
+                        mode: 0,
+                    },
+                });
+                
+                const lineSeries = tradePnLChart.addSeries(LineSeries, {
+                    color: '#58a6ff',
+                    lineWidth: 2,
+                    priceLineVisible: false,
+                    crosshairMarkerVisible: true,
+                });
+                
+                return { chart: tradePnLChart, series: lineSeries };
+            } catch (error) {
+                console.error('Failed to create trade P&L chart:', error);
+                return null;
+            }
+        }
+        
+        function updatePnLCharts(results) {
+            if (!results || !results.sessions || !results.trades) {
+                return;
+            }
+            
+            try {
+                // Create/update session P&L chart
+                const sessionChart = createSessionPnLChart();
+                if (sessionChart) {
+                    const sessionPnLData = [];
+                    let cumulativePnL = 0;
+                    
+                    results.sessions.forEach((session, index) => {
+                        if (session.result && typeof session.result.pnl === 'number') {
+                            cumulativePnL += session.result.pnl;
+                            sessionPnLData.push({
+                                time: Math.floor(session.startTime / 1000),
+                                value: cumulativePnL
+                            });
+                        }
+                    });
+                    
+                    if (sessionPnLData.length > 0) {
+                        sessionChart.series.setData(sessionPnLData);
+                        
+                        // Color the line based on final P&L
+                        const finalPnL = sessionPnLData[sessionPnLData.length - 1].value;
+                        sessionChart.series.applyOptions({
+                            color: finalPnL >= 0 ? '#56d364' : '#f85149'
+                        });
+                    }
+                }
+                
+                // Create/update trade P&L chart
+                const tradeChart = createTradePnLChart();
+                if (tradeChart) {
+                    const tradePnLData = [];
+                    let cumulativePnL = 0;
+                    
+                    results.trades.forEach((trade, index) => {
+                        if (typeof trade.pnlR === 'number') {
+                            cumulativePnL += trade.pnlR;
+                            tradePnLData.push({
+                                time: Math.floor(trade.entryTime / 1000),
+                                value: cumulativePnL
+                            });
+                        }
+                    });
+                    
+                    if (tradePnLData.length > 0) {
+                        tradeChart.series.setData(tradePnLData);
+                        
+                        // Color the line based on final P&L
+                        const finalPnL = tradePnLData[tradePnLData.length - 1].value;
+                        tradeChart.series.applyOptions({
+                            color: finalPnL >= 0 ? '#56d364' : '#f85149'
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to update P&L charts:', error);
+            }
+        }
+
         // Chart event handlers
         function setupChartEventHandlers() {
             if (!chart) {
@@ -3618,6 +3840,9 @@
                 // Update session summary
                 updateSessionSummary(results.sessions);
                 
+                // Update P&L charts
+                updatePnLCharts(results);
+                
                 // Update filter status
                 updateFilterStatus(`Showing: All trades (${results.trades.length} trades, ${results.sessions.length} sessions)`);
 
@@ -4141,6 +4366,29 @@
                             window.dashboardChart.resizeChart();
                         }, 100);
                     }
+                    
+                    // Resize P&L charts
+                    setTimeout(() => {
+                        if (sessionPnLChart) {
+                            const container = document.getElementById('session-pnl-chart');
+                            if (container) {
+                                sessionPnLChart.applyOptions({
+                                    width: container.clientWidth,
+                                    height: 300
+                                });
+                            }
+                        }
+                        
+                        if (tradePnLChart) {
+                            const container = document.getElementById('trade-pnl-chart');
+                            if (container) {
+                                tradePnLChart.applyOptions({
+                                    width: container.clientWidth,
+                                    height: 300
+                                });
+                            }
+                        }
+                    }, 100);
                 });
 
             } catch (error) {
