@@ -1039,6 +1039,10 @@
                             <div class="stat-value neutral">--</div>
                             <div class="stat-label">Session Win Rate</div>
                         </div>
+                        <div class="stat-card" data-label="trade-win-rate">
+                            <div class="stat-value neutral">--</div>
+                            <div class="stat-label">Trade Win Rate</div>
+                        </div>
                         <div class="stat-card">
                             <div class="stat-value neutral">--</div>
                             <div class="stat-label">Total Return</div>
@@ -3859,12 +3863,13 @@
 
             const updates = [
                 { selector: '.stat-card:nth-child(1) .stat-value', value: `${stats.sessionWinRate?.toFixed(1) || 0}%`, class: stats.sessionWinRate > 50 ? 'positive' : 'negative' },
-                { selector: '.stat-card:nth-child(2) .stat-value', value: `${stats.totalReturnR?.toFixed(1) || 0}R`, class: stats.totalReturnR > 0 ? 'positive' : 'negative' },
-                { selector: '.stat-card:nth-child(3) .stat-value', value: stats.averageTradesPerSession?.toFixed(1) || '0', class: 'neutral' },
-                { selector: '.stat-card:nth-child(4) .stat-value', value: `${stats.maxDrawdown?.toFixed(1) || 0}R`, class: 'negative' },
-                { selector: '.stat-card:nth-child(5) .stat-value', value: `${stats.intraDrawdown?.toFixed(1) || 0}R`, class: 'negative' },
-                { selector: '.stat-card:nth-child(6) .stat-value', value: stats.profitFactor?.toFixed(2) || '0', class: stats.profitFactor > 1 ? 'positive' : 'negative' },
-                { selector: '.stat-card:nth-child(7) .stat-value', value: stats.validSessions || '0', class: 'neutral' }
+                { selector: '.stat-card:nth-child(2) .stat-value', value: `${stats.tradeWinRate?.toFixed(1) || 0}%`, class: stats.tradeWinRate > 50 ? 'positive' : 'negative' },
+                { selector: '.stat-card:nth-child(3) .stat-value', value: `${stats.totalReturnR?.toFixed(1) || 0}R`, class: stats.totalReturnR > 0 ? 'positive' : 'negative' },
+                { selector: '.stat-card:nth-child(4) .stat-value', value: stats.averageTradesPerSession?.toFixed(1) || '0', class: 'neutral' },
+                { selector: '.stat-card:nth-child(5) .stat-value', value: `${stats.maxDrawdown?.toFixed(1) || 0}R`, class: 'negative' },
+                { selector: '.stat-card:nth-child(6) .stat-value', value: `${stats.intraDrawdown?.toFixed(1) || 0}R`, class: 'negative' },
+                { selector: '.stat-card:nth-child(7) .stat-value', value: stats.profitFactor?.toFixed(2) || '0', class: stats.profitFactor > 1 ? 'positive' : 'negative' },
+                { selector: '.stat-card:nth-child(8) .stat-value', value: stats.validSessions || '0', class: 'neutral' }
             ];
 
             updates.forEach(update => {
