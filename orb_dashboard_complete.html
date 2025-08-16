@@ -863,6 +863,15 @@
                 </div>
                 <div class="form-group">
                     <div class="label-with-tooltip">
+                        <label>Tick Thru</label>
+                        <span class="tooltip-icon">?
+                            <div class="tooltip-content">Amount price has to tick thru for target to be hit</div>
+                        </span>
+                    </div>
+                    <input type="number" id="tick-thru" value="0.01" min="0" step="0.0001">
+                </div>
+                <div class="form-group">
+                    <div class="label-with-tooltip">
                         <label>Target R Multiple</label>
                         <span class="tooltip-icon">?
                             <div class="tooltip-content">Default: 1.5 (target = 1.5x risk distance)</div>
@@ -1851,6 +1860,7 @@
                 sessionStarts: document.getElementById('session-starts').value.split(',').map(s => s.trim()),
                 stopMethod: 'bar',
                 tickBuffer: parseFloat(document.getElementById('tick-buffer').value) || 0.01,
+                tickThru: parseFloat(document.getElementById('tick-thru').value) || 0.01,
                 targetRMultiple: parseFloat(document.getElementById('target-r-multiple').value) || 1.5,
                 initialPositionSize: parseInt(document.getElementById('initial-position-size').value) || 100,
                 martingaleProgression: document.getElementById('martingale-progression').value.split(',').map(s => parseFloat(s.trim())),
@@ -3844,7 +3854,7 @@
                             };
                         }
                         // Check target (require price to exceed target by at least 1 tick)
-                        if (candle.high >= targetPrice + this.config.tickBuffer) {
+                        if (candle.high >= targetPrice + this.config.tickThru) {
                             return {
                                 price: targetPrice,
                                 time: candle.timestamp,
@@ -3864,7 +3874,7 @@
                             };
                         }
                         // Check target (require price to exceed target by at least 1 tick)
-                        if (candle.low <= targetPrice - this.config.tickBuffer) {
+                        if (candle.low <= targetPrice - this.config.tickThru) {
                             return {
                                 price: targetPrice,
                                 time: candle.timestamp,
@@ -4481,6 +4491,7 @@
                     // Stop/Target method
                     stopMethod: 'bar',
                     tickBuffer: document.getElementById('tick-buffer')?.value || '0.01',
+                    tickThru: document.getElementById('tick-thru')?.value || '0.01',
                     targetRMultiple: document.getElementById('target-r-multiple')?.value || '1.5',
                     
                     // Risk management
@@ -4548,6 +4559,9 @@
                 // Stop/Target method
                 if (settings.tickBuffer && document.getElementById('tick-buffer')) {
                     document.getElementById('tick-buffer').value = settings.tickBuffer;
+                }
+                if (settings.tickThru && document.getElementById('tick-thru')) {
+                    document.getElementById('tick-thru').value = settings.tickThru;
                 }
                 if (settings.targetRMultiple && document.getElementById('target-r-multiple')) {
                     document.getElementById('target-r-multiple').value = settings.targetRMultiple;
