@@ -783,58 +783,16 @@
             
             <!-- Stop/Target Method -->
             <div class="section">
-                <div class="section-title">🎯 Stop/Target Method</div>
+                <div class="section-title">🎯 Stop/Target Parameters</div>
                 <div class="form-group">
-                    <div class="toggle-group">
-                        <button class="toggle-option active" onclick="toggleStopMethod('bar')">Bar-Based</button>
-                        <button class="toggle-option" onclick="toggleStopMethod('atr')">ATR-Based</button>
+                    <div class="label-with-tooltip">
+                        <label>Tick Buffer</label>
+                        <span class="tooltip-icon">?
+                            <div class="tooltip-content">Default: 1 (ticks away from OR boundaries)</div>
+                        </span>
                     </div>
+                    <input type="number" id="tick-buffer" value="1" min="0">
                 </div>
-                
-                <!-- Bar-Based Parameters -->
-                <div id="bar-params">
-                    <div class="form-group">
-                        <div class="label-with-tooltip">
-                            <label>Tick Buffer</label>
-                            <span class="tooltip-icon">?
-                                <div class="tooltip-content">Default: 1 (ticks away from OR boundaries)</div>
-                            </span>
-                        </div>
-                        <input type="number" id="tick-buffer" value="1" min="0">
-                    </div>
-                </div>
-                
-                <!-- ATR-Based Parameters -->
-                <div id="atr-params" class="conditional-params hidden">
-                    <div class="form-group">
-                        <div class="label-with-tooltip">
-                            <label>ATR Period</label>
-                            <span class="tooltip-icon">?
-                                <div class="tooltip-content">Default: 14 (bars for ATR calculation)</div>
-                            </span>
-                        </div>
-                        <input type="number" id="atr-period" value="14" min="1">
-                    </div>
-                    <div class="form-group">
-                        <div class="label-with-tooltip">
-                            <label>ATR Multiplier</label>
-                            <span class="tooltip-icon">?
-                                <div class="tooltip-content">Default: 0.5 (multiplier for ATR distance)</div>
-                            </span>
-                        </div>
-                        <input type="number" id="atr-multiplier" value="0.5" step="0.1" min="0.1">
-                    </div>
-                    <div class="form-group">
-                        <div class="label-with-tooltip">
-                            <label>Minimum Stop (ticks)</label>
-                            <span class="tooltip-icon">?
-                                <div class="tooltip-content">Default: 1 (minimum stop distance in ticks)</div>
-                            </span>
-                        </div>
-                        <input type="number" id="min-stop-ticks" value="1" min="1">
-                    </div>
-                </div>
-                
                 <div class="form-group">
                     <div class="label-with-tooltip">
                         <label>Target R Multiple</label>
@@ -940,14 +898,6 @@
                     </div>
                 </div>
                 
-                <!-- Volatility Filters -->
-                <div class="form-group">
-                    <label>ATR Volatility Filter</label>
-                    <div class="form-row">
-                        <input type="number" id="min-atr-filter" placeholder="Min ATR" step="0.01">
-                        <input type="number" id="max-atr-filter" placeholder="Max ATR" step="0.01">
-                    </div>
-                </div>
                 
                 <!-- Date Range Filter -->
                 <div class="form-group">
@@ -1260,28 +1210,6 @@
             }
         }
 
-        // Stop/target method toggle
-        function toggleStopMethod(method) {
-            // Update toggle buttons
-            document.querySelectorAll('.section .toggle-group .toggle-option').forEach(btn => {
-                if (btn.textContent.includes('Bar') || btn.textContent.includes('ATR')) {
-                    btn.classList.remove('active');
-                }
-            });
-            event.target.classList.add('active');
-            
-            // Show/hide parameter sections
-            const barParams = document.getElementById('bar-params');
-            const atrParams = document.getElementById('atr-params');
-            
-            if (method === 'bar') {
-                barParams.classList.remove('hidden');
-                atrParams.classList.add('hidden');
-            } else {
-                barParams.classList.add('hidden');
-                atrParams.classList.remove('hidden');
-            }
-        }
 
         // Day filter toggles
         function toggleDay(dayIndex) {
@@ -1582,17 +1510,8 @@
                 sessionLength: parseInt(document.getElementById('session-length').value) || 240,
                 openingRange: parseInt(document.getElementById('opening-range').value) || 10,
                 sessionStarts: document.getElementById('session-starts').value.split(',').map(s => s.trim()),
-                stopMethod: (() => {
-                    const stopSection = Array.from(document.querySelectorAll('.section')).find(section => 
-                        section.querySelector('.section-title')?.textContent.includes('Stop/Target Method')
-                    );
-                    const activeButton = stopSection?.querySelector('.toggle-group .toggle-option.active');
-                    return activeButton?.textContent.toLowerCase().includes('bar') ? 'bar' : 'atr';
-                })(),
+                stopMethod: 'bar',
                 tickBuffer: parseInt(document.getElementById('tick-buffer').value) || 1,
-                atrPeriod: parseInt(document.getElementById('atr-period').value) || 14,
-                atrMultiplier: parseFloat(document.getElementById('atr-multiplier').value) || 0.5,
-                minStopTicks: parseInt(document.getElementById('min-stop-ticks').value) || 1,
                 targetRMultiple: parseFloat(document.getElementById('target-r-multiple').value) || 1.5,
                 initialPositionSize: parseInt(document.getElementById('initial-position-size').value) || 100,
                 martingaleProgression: document.getElementById('martingale-progression').value.split(',').map(s => parseFloat(s.trim())),
@@ -1626,8 +1545,6 @@
             // Reset all form inputs
             document.getElementById('time-windows').value = '';
             document.getElementById('max-trades-filter').value = '';
-            document.getElementById('min-atr-filter').value = '';
-            document.getElementById('max-atr-filter').value = '';
             document.getElementById('filter-start-date').value = '';
             document.getElementById('filter-end-date').value = '';
             document.getElementById('exclude-trades').value = '';
@@ -1818,7 +1735,7 @@
             const endTime = new Date(config.endDate).getTime();
             
             try {
-                // Download chart data (for display and ATR calculation)
+                // Download chart data
                 updateProgress(10, 'Downloading chart data...');
                 const chartData = await fetchCandleData(config.asset, config.chartTimeframe, startTime, endTime);
                 
@@ -2003,40 +1920,6 @@
             return timeframeMap[timeframe];
         }
 
-        // Calculate ATR (Average True Range) for the chart data
-        function calculateATR(data, period = 14) {
-            if (!data || data.length < period + 1) {
-                return data.map(() => 0);
-            }
-            
-            const trueRanges = [];
-            const atrValues = [];
-            
-            // Calculate True Range for each bar
-            for (let i = 0; i < data.length; i++) {
-                if (i === 0) {
-                    // First bar: just high - low
-                    trueRanges.push(data[i].high - data[i].low);
-                } else {
-                    const tr1 = data[i].high - data[i].low;
-                    const tr2 = Math.abs(data[i].high - data[i-1].close);
-                    const tr3 = Math.abs(data[i].low - data[i-1].close);
-                    trueRanges.push(Math.max(tr1, tr2, tr3));
-                }
-            }
-            
-            // Calculate ATR using Simple Moving Average of True Range
-            for (let i = 0; i < data.length; i++) {
-                if (i < period - 1) {
-                    atrValues.push(0);
-                } else {
-                    const sum = trueRanges.slice(i - period + 1, i + 1).reduce((a, b) => a + b, 0);
-                    atrValues.push(sum / period);
-                }
-            }
-            
-            return atrValues;
-        }
 
         // Save data to local file
         async function saveDataToFile(data, config) {
@@ -2139,7 +2022,6 @@
             loadAvailableSymbols,
             downloadData,
             validateData,
-            calculateATR,
             getChartData: () => downloadedData.chartData,
             getBacktestData: () => downloadedData.backtestData,
             getMetadata: () => downloadedData.metadata
@@ -3055,19 +2937,13 @@
                 let sessionActive = true;
                 let targetReached = false;
 
-                // Get ATR if using ATR-based stops
-                let atr = 0;
-                if (this.config.stopMethod === 'atr') {
-                    const atrData = this.calculateATRForSession(session, chartData);
-                    atr = atrData[atrData.length - 1] || 0;
-                }
+                // Bar-based stops only
 
                 while (sessionActive && !targetReached && currentTradeNum <= 10) {
                     const trade = await this.executeSingleTrade(
                         session, 
                         backtestData, 
                         currentTradeNum,
-                        atr,
                         trades,
                         chartData
                     );
@@ -3098,7 +2974,7 @@
             }
 
             // Execute a single trade in the martingale sequence
-            async executeSingleTrade(session, backtestData, tradeNum, atr, previousTrades, chartData) {
+            async executeSingleTrade(session, backtestData, tradeNum, previousTrades, chartData) {
                 try {
                     // Validate required data
                     if (!session || !session.openingRange) {
@@ -3150,7 +3026,6 @@
                         direction, 
                         entryPrice, 
                         session.openingRange, 
-                        atr,
                         tradeNum,
                         previousTrades,
                         chartData
@@ -3265,54 +3140,37 @@
             }
 
             // Calculate stop and target prices  
-            calculateStopAndTarget(direction, entryPrice, openingRange, atr, tradeNumber = 1, previousTrades = [], chartData = []) {
+            calculateStopAndTarget(direction, entryPrice, openingRange, tradeNumber = 1, previousTrades = [], chartData = []) {
                 let stopPrice, targetPrice;
-                console.log(`DEBUG Method Check: this.config.stopMethod='${this.config.stopMethod}'`);
+                console.log(`DEBUG Method Check: Using bar-based stops only`);
 
-                if (this.config.stopMethod === 'bar') {
-                    // Bar-based stops
-                    const tickBuffer = this.config.tickBuffer * this.config.tickSize;
-                    console.log(`DEBUG Stop Calc: method=${this.config.stopMethod}, tickBuffer=${this.config.tickBuffer}, tickSize=${this.config.tickSize}, calculated=${tickBuffer}`);
-                    
-                    if (tradeNumber === 1) {
-                        // Trade 1: Use Opening Range boundaries
-                        if (direction === 'LONG') {
-                            stopPrice = openingRange.low - tickBuffer;
-                            console.log(`DEBUG LONG Stop: OR Low=${openingRange.low}, tickBuffer=${tickBuffer}, calculated stop=${stopPrice}`);
-                        } else {
-                            stopPrice = openingRange.high + tickBuffer;
-                            console.log(`DEBUG SHORT Stop: OR High=${openingRange.high}, tickBuffer=${tickBuffer}, calculated stop=${stopPrice}`);
-                        }
+                // Bar-based stops only
+                const tickBuffer = this.config.tickBuffer * this.config.tickSize;
+                console.log(`DEBUG Stop Calc: bar method, tickBuffer=${this.config.tickBuffer}, tickSize=${this.config.tickSize}, calculated=${tickBuffer}`);
+                
+                if (tradeNumber === 1) {
+                    // Trade 1: Use Opening Range boundaries
+                    if (direction === 'LONG') {
+                        stopPrice = openingRange.low - tickBuffer;
+                        console.log(`DEBUG LONG Stop: OR Low=${openingRange.low}, tickBuffer=${tickBuffer}, calculated stop=${stopPrice}`);
                     } else {
-                        // Trade 2+: Use "prior bar" relative to stop trigger bar
-                        const lastTrade = previousTrades[previousTrades.length - 1];
-                        const priorBar = this.findPriorBarForStop(lastTrade, chartData);
-                        
-                        if (!priorBar) {
-                            console.error(`Could not find prior bar for trade ${tradeNumber} - trade will fail`);
-                            return null; // Fail trade cleanly instead of using fallback
-                        }
-                        
-                        if (direction === 'LONG') {
-                            stopPrice = priorBar.low - tickBuffer;
-                        } else {
-                            stopPrice = priorBar.high + tickBuffer;
-                        }
+                        stopPrice = openingRange.high + tickBuffer;
+                        console.log(`DEBUG SHORT Stop: OR High=${openingRange.high}, tickBuffer=${tickBuffer}, calculated stop=${stopPrice}`);
                     }
                 } else {
-                    // ATR-based stops (unchanged - same for all trades)
-                    console.log(`DEBUG ATR Mode: atr=${atr}, atrMultiplier=${this.config.atrMultiplier}, minStopTicks=${this.config.minStopTicks}, tickSize=${this.config.tickSize}`);
-                    const atrStop = atr * this.config.atrMultiplier;
-                    const minStop = this.config.minStopTicks * this.config.tickSize;
-                    const stopDistance = Math.max(atrStop, minStop);
-                    console.log(`DEBUG ATR Calc: atrStop=${atrStop}, minStop=${minStop}, stopDistance=${stopDistance}, entryPrice=${entryPrice}`);
-
+                    // Trade 2+: Use "prior bar" relative to stop trigger bar
+                    const lastTrade = previousTrades[previousTrades.length - 1];
+                    const priorBar = this.findPriorBarForStop(lastTrade, chartData);
+                    
+                    if (!priorBar) {
+                        console.error(`Could not find prior bar for trade ${tradeNumber} - trade will fail`);
+                        return null; // Fail trade cleanly instead of using fallback
+                    }
+                    
                     if (direction === 'LONG') {
-                        stopPrice = entryPrice - stopDistance;
-                        console.log(`DEBUG ATR LONG: entryPrice=${entryPrice} - stopDistance=${stopDistance} = stop=${stopPrice}`);
+                        stopPrice = priorBar.low - tickBuffer;
                     } else {
-                        stopPrice = entryPrice + stopDistance;
-                        console.log(`DEBUG ATR SHORT: entryPrice=${entryPrice} + stopDistance=${stopDistance} = stop=${stopPrice}`);
+                        stopPrice = priorBar.high + tickBuffer;
                     }
                 }
 
@@ -3498,15 +3356,6 @@
                 return null;
             }
 
-            // Calculate ATR for session
-            calculateATRForSession(session, chartData) {
-                // Get data leading up to and including the session
-                const relevantData = chartData.filter(candle =>
-                    candle.timestamp <= session.endTime
-                ).slice(-this.config.atrPeriod * 2); // Get enough data for ATR calculation
-
-                return calculateATR(relevantData, this.config.atrPeriod);
-            }
 
             // Calculate session duration
             calculateSessionDuration(trades) {
@@ -4050,11 +3899,8 @@
                     sessionStarts: document.getElementById('session-starts')?.value || '00:00, 04:00, 08:00, 12:00, 16:00, 20:00',
                     
                     // Stop/Target method
-                    stopMethod: document.querySelector('#bar-params').style.display !== 'none' ? 'bar' : 'atr',
+                    stopMethod: 'bar',
                     tickBuffer: document.getElementById('tick-buffer')?.value || '1',
-                    atrPeriod: document.getElementById('atr-period')?.value || '14',
-                    atrMultiplier: document.getElementById('atr-multiplier')?.value || '0.5',
-                    minStopTicks: document.getElementById('min-stop-ticks')?.value || '1',
                     targetRMultiple: document.getElementById('target-r-multiple')?.value || '1.5',
                     
                     // Risk management
@@ -4123,20 +3969,8 @@
                 }
                 
                 // Stop/Target method
-                if (settings.stopMethod) {
-                    toggleStopMethod(settings.stopMethod);
-                }
                 if (settings.tickBuffer && document.getElementById('tick-buffer')) {
                     document.getElementById('tick-buffer').value = settings.tickBuffer;
-                }
-                if (settings.atrPeriod && document.getElementById('atr-period')) {
-                    document.getElementById('atr-period').value = settings.atrPeriod;
-                }
-                if (settings.atrMultiplier && document.getElementById('atr-multiplier')) {
-                    document.getElementById('atr-multiplier').value = settings.atrMultiplier;
-                }
-                if (settings.minStopTicks && document.getElementById('min-stop-ticks')) {
-                    document.getElementById('min-stop-ticks').value = settings.minStopTicks;
                 }
                 if (settings.targetRMultiple && document.getElementById('target-r-multiple')) {
                     document.getElementById('target-r-multiple').value = settings.targetRMultiple;
