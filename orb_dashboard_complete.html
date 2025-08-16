@@ -734,13 +734,6 @@
                 
                 <!-- Universal Settings -->
                 <div class="form-group" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #30363d;">
-                    <div class="label-with-tooltip">
-                        <label>Tick Size</label>
-                        <span class="tooltip-icon">?
-                            <div class="tooltip-content">Default: 0.01 (minimum price movement)</div>
-                        </span>
-                    </div>
-                    <input type="number" placeholder="0.01" value="0.01" step="0.001" id="tick-size">
                 </div>
                 
                 <!-- Data Status -->
@@ -788,10 +781,10 @@
                     <div class="label-with-tooltip">
                         <label>Tick Buffer</label>
                         <span class="tooltip-icon">?
-                            <div class="tooltip-content">Default: 1 (ticks away from OR boundaries)</div>
+                            <div class="tooltip-content">Default: 0.01 (price buffer from OR boundaries)</div>
                         </span>
                     </div>
-                    <input type="number" id="tick-buffer" value="1" min="0">
+                    <input type="number" id="tick-buffer" value="0.01" min="0" step="0.0001">
                 </div>
                 <div class="form-group">
                     <div class="label-with-tooltip">
@@ -1511,12 +1504,11 @@
                 openingRange: parseInt(document.getElementById('opening-range').value) || 10,
                 sessionStarts: document.getElementById('session-starts').value.split(',').map(s => s.trim()),
                 stopMethod: 'bar',
-                tickBuffer: parseInt(document.getElementById('tick-buffer').value) || 1,
+                tickBuffer: parseFloat(document.getElementById('tick-buffer').value) || 0.01,
                 targetRMultiple: parseFloat(document.getElementById('target-r-multiple').value) || 1.5,
                 initialPositionSize: parseInt(document.getElementById('initial-position-size').value) || 100,
                 martingaleProgression: document.getElementById('martingale-progression').value.split(',').map(s => parseFloat(s.trim())),
-                maxSessionRisk: parseInt(document.getElementById('max-session-risk').value) || 15,
-                tickSize: parseFloat(document.getElementById('tick-size').value) || 0.01
+                maxSessionRisk: parseInt(document.getElementById('max-session-risk').value) || 15
             };
         }
 
@@ -3117,7 +3109,7 @@
                     candle.timestamp > session.openingRange.endTime
                 );
 
-                const tickBuffer = this.config.tickBuffer * this.config.tickSize;
+                const tickBuffer = this.config.tickBuffer;
 
                 for (const candle of postORData) {
                     // Check for breakout above opening range high
@@ -3147,8 +3139,8 @@
                 console.log(`DEBUG Method Check: Using bar-based stops only`);
 
                 // Bar-based stops only
-                const tickBuffer = this.config.tickBuffer * this.config.tickSize;
-                console.log(`DEBUG Stop Calc: bar method, tickBuffer=${this.config.tickBuffer}, tickSize=${this.config.tickSize}, calculated=${tickBuffer}`);
+                const tickBuffer = this.config.tickBuffer;
+                console.log(`DEBUG Stop Calc: bar method, tickBuffer=${this.config.tickBuffer}, calculated=${tickBuffer}`);
                 
                 if (tradeNumber === 1) {
                     // Trade 1: Use Opening Range boundaries
@@ -3324,7 +3316,7 @@
                             };
                         }
                         // Check target (require price to exceed target by at least 1 tick)
-                        if (candle.high >= targetPrice + this.config.tickSize) {
+                        if (candle.high >= targetPrice + this.config.tickBuffer) {
                             return {
                                 price: targetPrice,
                                 time: candle.timestamp,
@@ -3344,7 +3336,7 @@
                             };
                         }
                         // Check target (require price to exceed target by at least 1 tick)
-                        if (candle.low <= targetPrice - this.config.tickSize) {
+                        if (candle.low <= targetPrice - this.config.tickBuffer) {
                             return {
                                 price: targetPrice,
                                 time: candle.timestamp,
@@ -3893,7 +3885,6 @@
                     assetSelect: document.getElementById('asset-select')?.value || '',
                     chartTimeframe: document.getElementById('chart-timeframe-select')?.value || '15m',
                     backtestTimeframe: document.getElementById('backtest-timeframe-select')?.value || '5m',
-                    tickSize: document.getElementById('tick-size')?.value || '0.01',
                     
                     // Session configuration
                     sessionLength: document.getElementById('session-length')?.value || '240',
@@ -3902,7 +3893,7 @@
                     
                     // Stop/Target method
                     stopMethod: 'bar',
-                    tickBuffer: document.getElementById('tick-buffer')?.value || '1',
+                    tickBuffer: document.getElementById('tick-buffer')?.value || '0.01',
                     targetRMultiple: document.getElementById('target-r-multiple')?.value || '1.5',
                     
                     // Risk management
@@ -3954,9 +3945,6 @@
                 }
                 if (settings.backtestTimeframe && document.getElementById('backtest-timeframe-select')) {
                     document.getElementById('backtest-timeframe-select').value = settings.backtestTimeframe;
-                }
-                if (settings.tickSize && document.getElementById('tick-size')) {
-                    document.getElementById('tick-size').value = settings.tickSize;
                 }
                 
                 // Session configuration
