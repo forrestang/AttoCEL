@@ -2430,6 +2430,61 @@
                     tradeMarkers.push(stopLineSeries);
                 });
 
+                // Add circle markers on entry bars for debugging using LineSeries with single points
+                tradeGroups.forEach((group, entryTime) => {
+                    if (!group.entry || !group.target || !group.stop) return;
+                    
+                    // Blue circle marker for entry price (transparent for now)
+                    const entryMarkerSeries = chart.addSeries(LineSeries, {
+                        color: 'transparent',
+                        lineWidth: 0,
+                        pointMarkersVisible: false,
+                        pointMarkersRadius: 4,
+                        priceLineVisible: false,
+                        lastValueVisible: false,
+                        crosshairMarkerVisible: false,
+                        crosshairMarkerRadius: 4,
+                        crosshairMarkerBorderColor: 'transparent',
+                        crosshairMarkerBackgroundColor: 'transparent'
+                    });
+                    entryMarkerSeries.setData([{ time: entryTime, value: group.entry.price }]);
+                    tradeMarkers.push(entryMarkerSeries);
+                    
+                    // Green circle marker for target price (transparent for now)
+                    const targetMarkerSeries = chart.addSeries(LineSeries, {
+                        color: 'transparent',
+                        lineWidth: 0,
+                        pointMarkersVisible: false,
+                        pointMarkersRadius: 4,
+                        priceLineVisible: false,
+                        lastValueVisible: false,
+                        crosshairMarkerVisible: false,
+                        crosshairMarkerRadius: 4,
+                        crosshairMarkerBorderColor: 'transparent',
+                        crosshairMarkerBackgroundColor: 'transparent'
+                    });
+                    targetMarkerSeries.setData([{ time: entryTime, value: group.target.price }]);
+                    tradeMarkers.push(targetMarkerSeries);
+                    
+                    // Red circle marker for stop price (transparent for now)
+                    const stopMarkerSeries = chart.addSeries(LineSeries, {
+                        color: 'transparent',
+                        lineWidth: 0,
+                        pointMarkersVisible: false,
+                        pointMarkersRadius: 4,
+                        priceLineVisible: false,
+                        lastValueVisible: false,
+                        crosshairMarkerVisible: false,
+                        crosshairMarkerRadius: 4,
+                        crosshairMarkerBorderColor: 'transparent',
+                        crosshairMarkerBackgroundColor: 'transparent'
+                    });
+                    stopMarkerSeries.setData([{ time: entryTime, value: group.stop.price }]);
+                    tradeMarkers.push(stopMarkerSeries);
+                });
+
+                console.log(`Added circle markers using LineSeries`);
+
                 console.log(`Added ${tradeMarkers.length} trade lines to chart`);
 
             } catch (error) {
