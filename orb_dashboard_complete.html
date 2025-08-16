@@ -997,6 +997,10 @@
                         </div>
                         <div class="stat-card">
                             <div class="stat-value neutral">--</div>
+                            <div class="stat-label">Intra Drawdown</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value neutral">--</div>
                             <div class="stat-label">Profit Factor</div>
                         </div>
                         <div class="stat-card">
@@ -3412,6 +3416,7 @@
                     
                     // Risk metrics
                     maxDrawdown: this.calculateMaxDrawdown(sessionPnLs),
+                    intraDrawdown: this.calculateIntraDrawdown(validSessions),
                     profitFactor: this.calculateProfitFactor(sessionPnLs),
                     sharpeRatio: this.calculateSharpeRatio(sessionPnLs),
                     
@@ -3440,6 +3445,32 @@
                 }
 
                 return maxDrawdown;
+            }
+
+            // Calculate intra-session drawdown (worst consecutive losses within sessions)
+            calculateIntraDrawdown(validSessions) {
+                let maxIntraDrawdown = 0;
+
+                for (const session of validSessions) {
+                    const trades = session.result.trades;
+                    let currentDrawdown = 0;
+                    let worstDrawdown = 0;
+
+                    for (const trade of trades) {
+                        if (trade.pnlR < 0) {
+                            // Accumulate losses
+                            currentDrawdown += Math.abs(trade.pnlR);
+                            worstDrawdown = Math.max(worstDrawdown, currentDrawdown);
+                        } else {
+                            // Reset on winning trade
+                            currentDrawdown = 0;
+                        }
+                    }
+
+                    maxIntraDrawdown = Math.max(maxIntraDrawdown, worstDrawdown);
+                }
+
+                return maxIntraDrawdown;
             }
 
             // Calculate profit factor
@@ -3581,8 +3612,9 @@
                 { selector: '.stat-card:nth-child(2) .stat-value', value: `${stats.totalReturnR?.toFixed(1) || 0}R`, class: stats.totalReturnR > 0 ? 'positive' : 'negative' },
                 { selector: '.stat-card:nth-child(3) .stat-value', value: stats.averageTradesPerSession?.toFixed(1) || '0', class: 'neutral' },
                 { selector: '.stat-card:nth-child(4) .stat-value', value: `${stats.maxDrawdown?.toFixed(1) || 0}R`, class: 'negative' },
-                { selector: '.stat-card:nth-child(5) .stat-value', value: stats.profitFactor?.toFixed(2) || '0', class: stats.profitFactor > 1 ? 'positive' : 'negative' },
-                { selector: '.stat-card:nth-child(6) .stat-value', value: stats.validSessions || '0', class: 'neutral' }
+                { selector: '.stat-card:nth-child(5) .stat-value', value: `${stats.intraDrawdown?.toFixed(1) || 0}R`, class: 'negative' },
+                { selector: '.stat-card:nth-child(6) .stat-value', value: stats.profitFactor?.toFixed(2) || '0', class: stats.profitFactor > 1 ? 'positive' : 'negative' },
+                { selector: '.stat-card:nth-child(7) .stat-value', value: stats.validSessions || '0', class: 'neutral' }
             ];
 
             updates.forEach(update => {
