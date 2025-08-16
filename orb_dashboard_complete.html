@@ -2383,26 +2383,10 @@
                 // Clear existing markers/lines
                 clearTradeMarkers();
 
-                // Group trades by their entry time to get entry/target/stop together
-                const tradeGroups = new Map();
+                // Process each trade individually instead of grouping by entry time
                 trades.forEach(trade => {
-                    const key = trade.entryTime / 1000; // Convert to seconds for chart
-                    if (!tradeGroups.has(key)) {
-                        tradeGroups.set(key, { 
-                            entry: { price: trade.entryPrice, time: key },
-                            target: { price: trade.targetPrice, time: key }, 
-                            stop: { price: trade.stopPrice, time: key }
-                        });
-                    }
-                });
-
-
-                // Create horizontal lines for each trade group
-                tradeGroups.forEach((group, entryTime) => {
-                    if (!group.entry || !group.target || !group.stop) {
-                        return;
-                    }
-
+                    const entryTime = trade.entryTime / 1000; // Convert to seconds for chart
+                    
                     // Find session end time for this trade
                     const sessionEnd = findSessionEndTime(entryTime);
                     if (!sessionEnd) return;
@@ -2417,8 +2401,8 @@
                         crosshairMarkerVisible: false,
                     });
                     const entryLineData = [
-                        { time: entryTime, value: group.entry.price },
-                        { time: sessionEnd, value: group.entry.price }
+                        { time: entryTime, value: trade.entryPrice },
+                        { time: sessionEnd, value: trade.entryPrice }
                     ];
                     entryLineSeries.setData(entryLineData);
                     tradeMarkers.push(entryLineSeries);
@@ -2433,8 +2417,8 @@
                         crosshairMarkerVisible: false,
                     });
                     const targetLineData = [
-                        { time: entryTime, value: group.target.price },
-                        { time: sessionEnd, value: group.target.price }
+                        { time: entryTime, value: trade.targetPrice },
+                        { time: sessionEnd, value: trade.targetPrice }
                     ];
                     targetLineSeries.setData(targetLineData);
                     tradeMarkers.push(targetLineSeries);
@@ -2449,16 +2433,16 @@
                         crosshairMarkerVisible: false,
                     });
                     const stopLineData = [
-                        { time: entryTime, value: group.stop.price },
-                        { time: sessionEnd, value: group.stop.price }
+                        { time: entryTime, value: trade.stopPrice },
+                        { time: sessionEnd, value: trade.stopPrice }
                     ];
                     stopLineSeries.setData(stopLineData);
                     tradeMarkers.push(stopLineSeries);
                 });
 
-                // Add circle markers on entry bars for debugging using LineSeries with single points
-                tradeGroups.forEach((group, entryTime) => {
-                    if (!group.entry || !group.target || !group.stop) return;
+                // Add circle markers for each individual trade
+                trades.forEach(trade => {
+                    const entryTime = trade.entryTime / 1000; // Convert to seconds for chart
                     
                     // Blue circle marker for entry price
                     const entryMarkerSeries = chart.addSeries(LineSeries, {
@@ -2473,7 +2457,7 @@
                         crosshairMarkerBorderColor: '#58a6ff',
                         crosshairMarkerBackgroundColor: '#58a6ff'
                     });
-                    entryMarkerSeries.setData([{ time: entryTime, value: group.entry.price }]);
+                    entryMarkerSeries.setData([{ time: entryTime, value: trade.entryPrice }]);
                     tradeMarkers.push(entryMarkerSeries);
                     
                     // Green circle marker for target price
@@ -2489,7 +2473,7 @@
                         crosshairMarkerBorderColor: '#00d462',
                         crosshairMarkerBackgroundColor: '#00d462'
                     });
-                    targetMarkerSeries.setData([{ time: entryTime, value: group.target.price }]);
+                    targetMarkerSeries.setData([{ time: entryTime, value: trade.targetPrice }]);
                     tradeMarkers.push(targetMarkerSeries);
                     
                     // Red circle marker for stop price
@@ -2505,7 +2489,7 @@
                         crosshairMarkerBorderColor: '#f85149',
                         crosshairMarkerBackgroundColor: '#f85149'
                     });
-                    stopMarkerSeries.setData([{ time: entryTime, value: group.stop.price }]);
+                    stopMarkerSeries.setData([{ time: entryTime, value: trade.stopPrice }]);
                     tradeMarkers.push(stopMarkerSeries);
                 });
 
@@ -3065,8 +3049,16 @@
                     const positionSize = this.config.initialPositionSize * positionMultiplier;
 
                     // Find entry time
-                    const entryTime = this.findEntryTime(entryPrice, direction, sessionData, session);
-                    if (!entryTime) return null;
+                    let entryTime;
+                    if (tradeNum === 1) {
+                        // Trade 1: Find when breakout price was hit
+                        entryTime = this.findEntryTime(entryPrice, direction, sessionData, session);
+                        if (!entryTime) return null;
+                    } else {
+                        // Trade 2+: Enter immediately when previous trade was stopped out
+                        const lastTrade = previousTrades[previousTrades.length - 1];
+                        entryTime = lastTrade.exitTime;
+                    }
 
                     // Simulate trade execution
                     const exit = this.simulateTradeExecution(
