@@ -1536,10 +1536,26 @@
 
         // Data source management
         function toggleDataSource(source) {
-            // Update toggle buttons
-            const buttons = document.querySelectorAll('.controls-panel .toggle-option');
-            buttons.forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
+            // Find the Data Source section specifically
+            const allSections = document.querySelectorAll('.section');
+            const dataSourceSection = Array.from(allSections).find(section => 
+                section.querySelector('.section-title')?.textContent.includes('📡 Data Source')
+            );
+            
+            if (dataSourceSection) {
+                // Update only the data source toggle buttons
+                const buttons = dataSourceSection.querySelectorAll('.toggle-group .toggle-option');
+                buttons.forEach(btn => btn.classList.remove('active'));
+                
+                // Find and activate the correct button
+                const targetButton = Array.from(buttons).find(btn => 
+                    (source === 'api' && btn.textContent.includes('HyperLiquid API')) ||
+                    (source === 'upload' && btn.textContent.includes('Upload File'))
+                );
+                if (targetButton) {
+                    targetButton.classList.add('active');
+                }
+            }
             
             // Show/hide sections
             const apiSection = document.getElementById('api-data-source');
@@ -1941,6 +1957,10 @@
             try {
                 updateDataStatus('Loading available symbols...', 'info');
                 
+                // Add timeout for symbols request
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+                
                 const response = await fetch(HYPERLIQUID_API_URL, {
                     method: 'POST',
                     headers: {
@@ -1948,11 +1968,14 @@
                     },
                     body: JSON.stringify({
                         type: 'metaAndAssetCtxs'
-                    })
+                    }),
+                    signal: controller.signal
                 });
 
+                clearTimeout(timeoutId);
+
                 if (!response.ok) {
-                    throw new Error(`API request failed: ${response.status}`);
+                    throw new Error(`API request failed: ${response.status} ${response.statusText}`);
                 }
 
                 const data = await response.json();
@@ -1987,10 +2010,24 @@
             } catch (error) {
                 console.error('Failed to load symbols:', error);
                 
+                // Clear any pending timeout
+                if (timeoutId) clearTimeout(timeoutId);
+                
                 // Use fallback symbols
                 availableSymbols = ['BTC', 'ETH', 'SOL', 'AVAX', 'MATIC', 'ARB', 'OP', 'DOGE', 'LTC', 'XRP'];
                 populateAssetDropdown();
-                updateDataStatus('Using fallback symbols (API error)', 'error');
+                
+                // Provide specific error message
+                let errorMsg = 'Using fallback symbols - ';
+                if (error.name === 'AbortError') {
+                    errorMsg += 'API timeout';
+                } else if (error.message.includes('network') || error.message.includes('fetch')) {
+                    errorMsg += 'network error';
+                } else {
+                    errorMsg += 'API error';
+                }
+                
+                updateDataStatus(errorMsg, 'error');
             }
         }
 
@@ -2072,7 +2109,22 @@
                 
             } catch (error) {
                 console.error('Download failed:', error);
-                updateDataStatus(`Download failed: ${error.message}`, 'error');
+                
+                // Provide more specific error messages
+                let errorMessage = 'Download failed: ';
+                if (error.message.includes('timeout')) {
+                    errorMessage += 'Request timed out. Please check your internet connection and try again.';
+                } else if (error.message.includes('rate limit') || error.message.includes('429')) {
+                    errorMessage += 'Rate limit exceeded. Please wait a few minutes before trying again.';
+                } else if (error.message.includes('network') || error.message.includes('fetch')) {
+                    errorMessage += 'Network error. Please check your connection and try again.';
+                } else if (error.message.includes('5000') || error.message.includes('5K')) {
+                    errorMessage += 'Date range too large. Please reduce the date range or use a larger timeframe.';
+                } else {
+                    errorMessage += error.message;
+                }
+                
+                updateDataStatus(errorMessage, 'error');
                 hideElement('download-progress');
             }
         }
@@ -2088,14 +2140,18 @@
                 const chartData = await fetchCandleData(config.asset, config.chartTimeframe, startTime, endTime);
                 
                 updateProgress(30, 'Processing chart data...');
-                const processedChartData = processCandleData(chartData, config.chartTimeframe);
+                const processedChartData = await processCandleData(chartData, config.chartTimeframe);
+                
+                // Add delay between API calls to prevent rate limiting
+                updateProgress(40, 'Waiting to prevent rate limiting...');
+                await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay
                 
                 // Download backtest data (for execution granularity)
                 updateProgress(50, 'Downloading backtest data...');
                 const backtestData = await fetchCandleData(config.asset, config.backtestTimeframe, startTime, endTime);
                 
                 updateProgress(70, 'Processing backtest data...');
-                const processedBacktestData = processCandleData(backtestData, config.backtestTimeframe);
+                const processedBacktestData = await processCandleData(backtestData, config.backtestTimeframe);
                 
                 // Store data
                 updateProgress(80, 'Storing data...');
@@ -2142,39 +2198,72 @@
             }
         }
 
-        // Fetch candle data from HyperLiquid API
-        async function fetchCandleData(coin, interval, startTime, endTime) {
-            const response = await fetch(HYPERLIQUID_API_URL, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    type: 'candleSnapshot',
-                    req: {
-                        coin: coin,
-                        interval: interval,
-                        startTime: startTime,
-                        endTime: endTime
-                    }
-                })
-            });
-
-            if (!response.ok) {
-                throw new Error(`HyperLiquid API error: ${response.status}`);
-            }
-
-            const data = await response.json();
+        // Fetch candle data from HyperLiquid API with timeout and retry logic
+        async function fetchCandleData(coin, interval, startTime, endTime, retryCount = 0) {
+            const maxRetries = 3;
+            const timeoutMs = 30000; // 30 second timeout
             
-            if (!Array.isArray(data)) {
-                throw new Error('Invalid API response format');
-            }
+            // Create abort controller for timeout
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
             
-            return data;
+            try {
+                const response = await fetch(HYPERLIQUID_API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        type: 'candleSnapshot',
+                        req: {
+                            coin: coin,
+                            interval: interval,
+                            startTime: startTime,
+                            endTime: endTime
+                        }
+                    }),
+                    signal: controller.signal
+                });
+
+                clearTimeout(timeoutId);
+
+                if (!response.ok) {
+                    throw new Error(`HyperLiquid API error: ${response.status} ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                
+                if (!Array.isArray(data)) {
+                    throw new Error('Invalid API response format - expected array');
+                }
+                
+                return data;
+                
+            } catch (error) {
+                clearTimeout(timeoutId);
+                
+                // Handle different error types
+                if (error.name === 'AbortError') {
+                    throw new Error(`Request timeout after ${timeoutMs/1000} seconds`);
+                }
+                
+                // Retry logic for network errors
+                if (retryCount < maxRetries && (error.message.includes('fetch') || error.message.includes('network') || error.message.includes('timeout'))) {
+                    console.warn(`API request failed (attempt ${retryCount + 1}/${maxRetries + 1}): ${error.message}`);
+                    
+                    // Exponential backoff: 1s, 2s, 4s
+                    const delayMs = Math.pow(2, retryCount) * 1000;
+                    await new Promise(resolve => setTimeout(resolve, delayMs));
+                    
+                    return fetchCandleData(coin, interval, startTime, endTime, retryCount + 1);
+                }
+                
+                throw error;
+            }
         }
 
         // Process raw candle data into standardized format
-        function processCandleData(rawData, timeframe) {
+        async function processCandleData(rawData, timeframe) {
             // First, process the raw data
             const processedData = rawData.map(candle => ({
                 timestamp: candle.t,
@@ -2194,11 +2283,14 @@
                 hrt: new Date(candle.t).toISOString()
             }));
 
+            // Allow UI breathing room before gap filling
+            await new Promise(resolve => setTimeout(resolve, 10));
+
             // Fill gaps in the data
             return fillDataGaps(processedData, timeframe);
         }
 
-        // Fill gaps in time series data
+        // Fill gaps in time series data with safety limits
         function fillDataGaps(data, timeframe) {
             if (!data || data.length === 0) return data;
             
@@ -2207,6 +2299,7 @@
             if (!timeframeMs) return data; // Unknown timeframe, return as is
             
             const filledData = [];
+            const maxGapFill = 100; // Limit gap filling to prevent infinite loops
             
             for (let i = 0; i < data.length; i++) {
                 filledData.push(data[i]);
@@ -2216,15 +2309,22 @@
                     const currentTime = data[i].timestamp;
                     const nextTime = data[i + 1].timestamp;
                     
-                    // Calculate the next expected timestamp aligned to timeframe
-                    const expectedNextTime = getNextAlignedTimestamp(currentTime, timeframeMs);
+                    // Calculate gap size in periods
+                    const gapSize = Math.floor((nextTime - currentTime) / timeframeMs);
                     
-                    // Fill gaps if next bar is more than one timeframe away
-                    let gapTime = expectedNextTime;
-                    while (gapTime < nextTime) {
-                        const gapBar = createGapBar(data[i], gapTime, timeframe);
-                        filledData.push(gapBar);
-                        gapTime = getNextAlignedTimestamp(gapTime, timeframeMs);
+                    // Only fill reasonable gaps (skip very large gaps)
+                    if (gapSize > 1 && gapSize <= maxGapFill) {
+                        const expectedNextTime = getNextAlignedTimestamp(currentTime, timeframeMs);
+                        
+                        let gapTime = expectedNextTime;
+                        let gapCount = 0;
+                        
+                        while (gapTime < nextTime && gapCount < maxGapFill) {
+                            const gapBar = createGapBar(data[i], gapTime, timeframe);
+                            filledData.push(gapBar);
+                            gapTime = getNextAlignedTimestamp(gapTime, timeframeMs);
+                            gapCount++;
+                        }
                     }
                 }
             }
@@ -2272,8 +2372,16 @@
 
         // Get next timestamp aligned to timeframe interval
         function getNextAlignedTimestamp(timestamp, timeframeMs) {
+            // Safety check to prevent invalid calculations
+            if (!timestamp || !timeframeMs || timeframeMs <= 0) {
+                return timestamp + timeframeMs;
+            }
+            
             // Round up to the next timeframe boundary
-            return Math.ceil(timestamp / timeframeMs) * timeframeMs;
+            const aligned = Math.ceil(timestamp / timeframeMs) * timeframeMs;
+            
+            // Additional safety: ensure we're moving forward
+            return aligned > timestamp ? aligned : timestamp + timeframeMs;
         }
 
 
@@ -4476,9 +4584,22 @@
         // User Settings Functions for LocalStorage persistence
         function saveUserSettings() {
             try {
+                // Get data source from the specific data source section
+                let dataSource = 'api'; // default
+                const allSections = document.querySelectorAll('.section');
+                const dataSourceSection = Array.from(allSections).find(section => 
+                    section.querySelector('.section-title')?.textContent.includes('📡 Data Source')
+                );
+                if (dataSourceSection) {
+                    const activeButton = dataSourceSection.querySelector('.toggle-group .toggle-option.active');
+                    if (activeButton && activeButton.textContent.includes('Upload File')) {
+                        dataSource = 'upload';
+                    }
+                }
+
                 const userSettings = {
                     // Data configuration
-                    dataSource: document.querySelector('.controls-panel .toggle-option.active').textContent.includes('API') ? 'api' : 'upload',
+                    dataSource: dataSource,
                     assetSelect: document.getElementById('asset-select')?.value || '',
                     chartTimeframe: document.getElementById('chart-timeframe-select')?.value || '15m',
                     backtestTimeframe: document.getElementById('backtest-timeframe-select')?.value || '5m',
@@ -4524,15 +4645,38 @@
 
                 const settings = JSON.parse(savedSettings);
                 
-                // Apply data configuration
-                const dataSourceButtons = document.querySelectorAll('.controls-panel .toggle-option');
-                dataSourceButtons.forEach(btn => {
-                    btn.classList.remove('active');
-                    if ((settings.dataSource === 'api' && btn.textContent.includes('API')) ||
-                        (settings.dataSource === 'upload' && btn.textContent.includes('Upload'))) {
-                        btn.classList.add('active');
+                // Apply data configuration - use the same logic as toggleDataSource
+                if (settings.dataSource) {
+                    const allSections = document.querySelectorAll('.section');
+                    const dataSourceSection = Array.from(allSections).find(section => 
+                        section.querySelector('.section-title')?.textContent.includes('📡 Data Source')
+                    );
+                    
+                    if (dataSourceSection) {
+                        const dataSourceButtons = dataSourceSection.querySelectorAll('.toggle-group .toggle-option');
+                        dataSourceButtons.forEach(btn => btn.classList.remove('active'));
+                        
+                        const targetButton = Array.from(dataSourceButtons).find(btn => 
+                            (settings.dataSource === 'api' && btn.textContent.includes('HyperLiquid API')) ||
+                            (settings.dataSource === 'upload' && btn.textContent.includes('Upload File'))
+                        );
+                        if (targetButton) {
+                            targetButton.classList.add('active');
+                        }
+                        
+                        // Also apply the section visibility
+                        const apiSection = document.getElementById('api-data-source');
+                        const fileSection = document.getElementById('file-data-source');
+                        
+                        if (settings.dataSource === 'api') {
+                            apiSection.classList.remove('hidden');
+                            fileSection.classList.add('hidden');
+                        } else {
+                            apiSection.classList.add('hidden');
+                            fileSection.classList.remove('hidden');
+                        }
                     }
-                });
+                }
                 
                 // Update form fields
                 if (settings.assetSelect && document.getElementById('asset-select')) {
@@ -4631,6 +4775,9 @@
                 if (window.dashboardChart && window.dashboardChart.initializeChart) {
                     window.dashboardChart.initializeChart();
                 }
+
+                // Initialize data source toggle to match default state
+                toggleDataSource('api');
 
                 // Load symbols if in API mode
                 if (window.dashboardAPI && window.dashboardAPI.loadAvailableSymbols) {
