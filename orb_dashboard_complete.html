@@ -2386,12 +2386,14 @@
                 // Group trades by their entry time to get entry/target/stop together
                 const tradeGroups = new Map();
                 trades.forEach(trade => {
-                    const key = trade.time;
+                    const key = trade.entryTime / 1000; // Convert to seconds for chart
                     if (!tradeGroups.has(key)) {
-                        tradeGroups.set(key, { entry: null, target: null, stop: null, sessionEnd: null });
+                        tradeGroups.set(key, { 
+                            entry: { price: trade.entryPrice, time: key },
+                            target: { price: trade.targetPrice, time: key }, 
+                            stop: { price: trade.stopPrice, time: key }
+                        });
                     }
-                    const group = tradeGroups.get(key);
-                    group[trade.type] = trade;
                 });
 
 
@@ -2656,7 +2658,7 @@
                         return markers;
                     });
                     
-                    addTradeMarkers(chartMarkers);
+                    addTradeMarkers(backtestResults.trades);
                 }
 
                 // Add session boxes
